@@ -4,7 +4,7 @@
 #include "y.tab.h"
 #include <string.h>
 #include <stdlib.h>
-int yylineno = 1;
+int yylineno = 1; 
 
 %}
 %x COMMENT  // State used when inside a multi-line comment
@@ -46,8 +46,8 @@ return                   { return RETURN;}
 returns                  { return RETURNS;}
 null                     { return NULLL; }
 do                       { return DO;    }
-begin                    { return BEGINK;}
-end                      { return ENDK;  }
+begin                    { return BEGIN;}
+end                      { return END;  }
 def                      { return DEF;   }
 call                     { return CALL;  }
 and                      { return AND;   }
@@ -78,13 +78,14 @@ or                       { return OR;    }
 "["                      { return LBRACKET;   }
 "]"                      { return RBRACKET;   }
 
+
 /* ---- literals ---- */
 
 /* Matches the keyword 'true', sets yylval.boolean to 1 (true), and returns BOOL_LIT */
 true                     { yylval.boolean = 1; return BOOL_LIT;  }
 
 /* Matches the keyword 'FALSE', sets yylval.boolean to 0 (false), and returns BOOL_LIT */
-FALSE                    { yylval.boolean = 0; return BOOL_LIT;  }
+false                    { yylval.boolean = 0; return BOOL_LIT;  }
 
 /* Matches hexadecimal literals, stores them as a string, returns HEX_LIT */
 0[xX][0-9A-Fa-f]+        { yylval.string = strdup(yytext); return HEX_LIT; }
@@ -97,7 +98,7 @@ FALSE                    { yylval.boolean = 0; return BOOL_LIT;  }
                             { yylval.string = strdup(yytext); return REAL_LIT; }
 
 /* Matches a character literal (e.g. 'a', '\n'), stores it as string, returns CHAR_LIT */
-\'[\\]?[ -~]\'           { yylval.string = strdup(yytext); return CHAR_LIT; }
+\'[\\]?[ -~]\'           { yylval.string = strdup(yytext); return CHAR_LIT; } //?
 
 /* Matches a string literal surrounded by double quotes on the same line (e.g. "hello"), returns STRING_LTL */
 "\""[^"\n]*"\""          { yylval.string = strdup(yytext); return STRING_LTL; }
