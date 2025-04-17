@@ -4,25 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-int yylineno = 1; 
 %}
-
 %%
-%x COMMENT  
-
-"#->"                { BEGIN(COMMENT); yylval.string = strdup(yytext); return COMMENT; }
-// When '#->' is found, enter COMMENT mode, save the opening marker, and return COMMENT token
-
-<COMMENT>"<-#"       { BEGIN(INITIAL); }
-// When '<-#' is found, exit COMMENT mode and return to INITIAL state
-
-<COMMENT>[^\n]+      ;
-// Ignore all characters inside the comment except newlines
-
-<COMMENT>\n          { yylineno++; }
-// Increment line number for each newline inside the comment
-
-
 bool                     { return BOOL; }
 char                     { return CHAR; }
 int                      { return INT; }
