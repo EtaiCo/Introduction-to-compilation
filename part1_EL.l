@@ -73,7 +73,8 @@ false                    { yylval.boolean = 0; return BOOL_LIT;  }
 
 [a-zA-Z][a-zA-Z0-9_]*    { yylval.string = strdup(yytext); return IDENT; }
 
-#->([^<]|<(?!-#))<-# {}
+#->([^<]|<[^-]|<-+[^#])*<-#    {}
+
 #-> Catches any character not matched above, prints error with line number, and returns the character <-#
 .                        { fprintf(stderr,"Unknown char %c \n", *yytext); return yytext[0]; }
 
