@@ -4,24 +4,7 @@
 #include "y.tab.h"
 #include <string.h>
 #include <stdlib.h>
-int yylineno = 1; 
-
 %}
-%x COMMENT  // State used when inside a multi-line comment
-
-%%
-
-"#->"                { BEGIN(COMMENT); yylval.string = strdup(yytext); return COMMENT; }
-// When '#->' is found, enter COMMENT mode, save the opening marker, and return COMMENT token
-
-<COMMENT>"<-#"       { BEGIN(INITIAL); }
-// When '<-#' is found, exit COMMENT mode and return to INITIAL state
-
-<COMMENT>[^\n]+      ;
-// Ignore all characters inside the comment except newlines
-
-<COMMENT>\n          { yylineno++; }
-// Increment line number for each newline inside the comment
 
 /*---------- Types Lexemes ----------*/
 bool                     { return BOOL; }
@@ -40,7 +23,7 @@ else                     { return ELSE; }
 while                    { return WHILE; }
 for                      { return FOR; }
 var                      { return VARIABLE; }
-par[0-9]+                { yylval.ival = atoi(yytext+3); return PAR; }
+par[0-9]+                { return PAR; }
 
 return                   { return RETURN;}
 returns                  { return RETURNS;}
@@ -109,8 +92,8 @@ false                    { yylval.boolean = 0; return BOOL_LIT;  }
 /* Matches identifiers: names that start with a letter followed by letters, digits, or underscores */
 [a-zA-Z][a-zA-Z0-9_]*    { yylval.string = strdup(yytext); return IDENT; }
 
-
+#->([^<]|<(?!-#))<-# {/ Skip comment entirely*/}
 /* Catches any character not matched above, prints error with line number, and returns the character */
-.                        { fprintf(stderr,"Unknown char %c at line %d\n", *yytext, yylineno); return yytext[0]; }
+.                        { fprintf(stderr,"Unknown char %c \n", *yytext); return yytext[0]; }
 
 %%
