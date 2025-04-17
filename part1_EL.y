@@ -202,7 +202,7 @@ expr         : expr OR      expr                { $$ = mknode("||",$1,$3); }
 
 unary        : NOT unary                        { $$ = mknode("!",$2,NULL); }
              | ADDRESS lhs                      { $$ = mknode("&",$2,NULL); }
-             | MULTI unary                      { $$ = mknode("",$2,NULL); } / deref */
+             | MULTI unary                      { $$ = mknode("",$2,NULL); } /* deref */
              | primary                          { $$ = $1; } ;
 
 primary      : LPAREN expr RPAREN               { $$ = $2; }
