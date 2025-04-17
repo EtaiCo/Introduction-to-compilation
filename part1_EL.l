@@ -75,7 +75,6 @@ false                    { yylval.boolean = 0; return BOOL_LIT;  }
 
 #->([^<]|<[^-]|<-+[^#])*<-#    {}
 
-#-> Catches any character not matched above, prints error with line number, and returns the character <-#
 .                        { fprintf(stderr,"Unknown char %c \n", *yytext); return yytext[0]; }
 
 %%
