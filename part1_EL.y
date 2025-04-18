@@ -1,23 +1,30 @@
-/* ----------  part1_EL.y  ---------- *
- *     Parser + AST builder           */
-
+/* part1_EL.y – parser + AST builder */
 %{
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include "lex.yy.c"          /* yylex(), yytext, yylineno */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+int yylex(void);
+extern int yylineno;
+extern char *yytext;
+%}
 
+/*  טיפוס  node חייב להיות ידוע גם ל‑lexer  */
+%code requires {
+    typedef struct ast_node *node;
+}
+
+%code {
     /* ---------- AST node ---------- */
-    typedef struct ast_node {
-        char             tok;    / label / operator */
-        struct ast_node  l;      / first  child     */
-        struct ast_node  r;      / second child     */
-    } *node;
+    struct ast_node {
+        char            *tok;   /* label / operator / literal            */
+        struct ast_node *l;     /* first  child                          */
+        struct ast_node *r;     /* second child (siblings chained here)  */
+    };
+    typedef struct ast_node *node;
 
-    /* helpers */
     static node mknode(char *t,node l,node r){
         node n = (node)malloc(sizeof(struct ast_node));
-        n->tok = strdup(t);
+        n->tok = t ? strdup(t) : strdup("");
         n->l   = l;
         n->r   = r;
         return n;
@@ -26,70 +33,59 @@
     static void printTree(node t,int ind){
         if(!t) return;
         printTabs(ind);
-        if(strcmp(t->tok,"")) printf("(%s",t->tok);
-
-        if(t->l){ putchar('\n'); printTree(t->l,ind+3); }
-        if(t->r){ putchar('\n'); printTree(t->r,ind+3); }
-
-        if(strcmp(t->tok,"")) printf(")");
-        if(!ind) putchar('\n');
+        if(t->tok && *t->tok) printf("(%s",t->tok);
+        if(t->l){ putchar('\\n'); printTree(t->l,ind+3); }
+        if(t->r){ putchar('\\n'); printTree(t->r,ind+3); }
+        if(t->tok && *t->tok) printf(")");
+        if(!ind) putchar('\\n');
     }
-    int yyerror(char *s){
-        fprintf(stderr,"Error: %s at line %d near '%s'\n",s,yylineno,yytext);
-        return 0;
+    void yyerror(const char *s){
+        fprintf(stderr,"Error: %s at line %d near '%s'\\n",
+                s,yylineno,yytext);
     }
-%}
-
-/* ---------- Bison value types ---------- */
-%union{
-    node  n;        /* AST node                      */
-    char str;      / IDENT / literal raw text      */
-    int   boolean;  /* TRUE / FALSE                  */
 }
 
-/* ---------- terminals from the lexer ---------- */
-%token <str> BOOL CHAR INT REAL STRING INTPTR CHARPTR REALPTR
-%token <str> IF ELIF ELSE WHILE FOR DO VARIABLE PAR RETURN RETURNS
-%token <str> NULLL BEGIN END DEF CALL
-%token <str> AND OR NOT
+/* -------------------- YYSTYPE -------------------- */
+%union{
+    node n;
+    char *str;
+    int   boolean;
+}
+
+/* -------------------- tokens -------------------- */
+%token BOOL CHAR INT REAL STRING INTPTR CHARPTR REALPTR
+%token IF ELIF ELSE WHILE FOR DO VARIABLE PAR RETURN RETURNS
+%token NULLL KW_BEGIN END DEF CALL
+%token AND OR NOT
 %token <str> BOOL_LIT HEX_LIT INT_LIT REAL_LIT CHAR_LIT STRING_LTL
 %token <str> IDENT
+%token EQL NOTEQL GREATEREQL LESSEQL GREATER LESS
+%token ASSIGN PLUS MINUS MULTI DIV ADDRESS LENGTH
+%token LPAREN RPAREN LBRACKET RBRACKET SEMICOLON COLON COMMA
 
-/* ops & punctuation */
-%token <str> EQL NOTEQL GREATEREQL LESSEQL GREATER LESS
-%token <str> ASSIGN PLUS MINUS MULTI DIV ADDRESS LENGTH
-%token <str> LPAREN RPAREN LBRACKET RBRACKET SEMICOLON COLON COMMA
-
-/* precedence (כמו ‑C) */
+/* precedence */
 %left  OR
 %left  AND
 %left  EQL NOTEQL LESS LESSEQL GREATER GREATEREQL
 %left  PLUS MINUS
 %left  MULTI DIV
 %right ADDRESS NOT
-%right ASSIGN                     /* lowest */
+%right ASSIGN
 
-/* ---------- non‑terminal types ---------- */
-%type <n> program units unit
-%type <n> func_hdr proc_hdr params param_list ret_type
-%type <n> decls decl decl_ids type_spec
-%type <n> stmts stmt block opt_stmts opt_else
-%type <n> assign lhs call_stmt arg_list
-%type <n> expr unary primary literal
+/* non‑terminals’ value type */
+%type <n> program units unit func_hdr proc_hdr params param_list ret_type
+%type <n> decls decl decl_ids type_spec stmts stmt block opt_stmts opt_else
+%type <n> assign lhs call_stmt arg_list expr unary primary literal
 
-%%  /* ================= grammar ================= */
+%%                              /* -------- grammar -------- */
+program      : units                           { printTree($1,0); } ;
 
-/* program root */
-program      : units                           { printTree($1,0); YYACCEPT; } ;
-
-/* sequence of units (funcs / procs) */
 units        : units unit                      { $$ = mknode("",$1,$2); }
              | /* ε */                         { $$ = NULL; } ;
 
 unit         : func_hdr block                  { $$ = mknode("FUNC",$1,$2); }
              | proc_hdr block                  { $$ = mknode("PROC",$1,$2); } ;
 
-/* ---------- headers ---------- */
 func_hdr     : DEF IDENT LPAREN params RPAREN COLON RETURNS ret_type
                    { $$ = mknode($2,
                                   mknode("PARAMS",$4,NULL),
@@ -118,16 +114,14 @@ param_list   : param_list SEMICOLON param_list  { $$ = mknode("",$1,$3); }
                                   mknode($3->tok,NULL,NULL),
                                   mknode($5,NULL,NULL)); } ;
 
-/* ---------- block ---------- */
-block        : VARIABLE decls BEGIN opt_stmts END
+block        : VARIABLE decls KW_BEGIN opt_stmts END
                    { $$ = mknode("BLOCK",
                                   mknode("DECLS",$2,NULL),
                                   $4); }
-             | BEGIN opt_stmts END              { $$ = mknode("BLOCK",$2,NULL); } ;
+             | KW_BEGIN opt_stmts END           { $$ = mknode("BLOCK",$2,NULL); } ;
 
 opt_stmts    : stmts | /* ε */                  { $$ = NULL; } ;
 
-/* ---------- declarations ---------- */
 decls        : decls decl                       { $$ = mknode("",$1,$2); }
              | decl                             { $$ = $1; } ;
 
@@ -148,7 +142,6 @@ type_spec    : BOOL     { $$ = mknode("bool" ,NULL,NULL); }
 decl_ids     : decl_ids COMMA decl_ids          { $$ = mknode("",$1,$3); }
              | IDENT                            { $$ = mknode($1,NULL,NULL); } ;
 
-/* ---------- statements ---------- */
 stmts        : stmts stmt                       { $$ = mknode("",$1,$2); }
              | stmt                             { $$ = $1; } ;
 
@@ -169,7 +162,6 @@ stmt         : assign SEMICOLON                 { $$ = $1; }
 opt_else     : ELSE COLON block                 { $$ = $3; }
              | /* ε */                          { $$ = NULL; } ;
 
-/* ---------- assignment & call ---------- */
 assign       : lhs ASSIGN expr                  { $$ = mknode("=", $1,$3); } ;
 
 lhs          : IDENT                            { $$ = mknode($1,NULL,NULL); }
@@ -185,7 +177,6 @@ arg_list     : arg_list COMMA expr              { $$ = mknode("",$1,$3); }
              | expr                             { $$ = $1; }
              | /* ε */                          { $$ = NULL; } ;
 
-/* ---------- expressions ---------- */
 expr         : expr OR      expr                { $$ = mknode("||",$1,$3); }
              | expr AND     expr                { $$ = mknode("&&",$1,$3); }
              | expr EQL     expr                { $$ = mknode("==",$1,$3); }
@@ -202,7 +193,7 @@ expr         : expr OR      expr                { $$ = mknode("||",$1,$3); }
 
 unary        : NOT unary                        { $$ = mknode("!",$2,NULL); }
              | ADDRESS lhs                      { $$ = mknode("&",$2,NULL); }
-             | MULTI unary                      { $$ = mknode("",$2,NULL); } /* deref */
+             | MULTI unary                      { $$ = mknode("*",$2,NULL); }
              | primary                          { $$ = $1; } ;
 
 primary      : LPAREN expr RPAREN               { $$ = $2; }
@@ -210,13 +201,13 @@ primary      : LPAREN expr RPAREN               { $$ = $2; }
              | literal                          { $$ = $1; }
              | NULLL                            { $$ = mknode("null",NULL,NULL); } ;
 
-literal      : BOOL_LIT   { $$ = mknode(yytext,NULL,NULL); }
-             | INT_LIT    { $$ = mknode(yytext,NULL,NULL); }
-             | HEX_LIT    { $$ = mknode(yytext,NULL,NULL); }
-             | REAL_LIT   { $$ = mknode(yytext,NULL,NULL); }
-             | CHAR_LIT   { $$ = mknode(yytext,NULL,NULL); }
-             | STRING_LTL { $$ = mknode(yytext,NULL,NULL); } ;
-
-%% /* ================= C‑code ================= */
-
-int main(){ return yyparse(); }
+literal      : BOOL_LIT   { $$ = mknode($1,NULL,NULL); }
+             | INT_LIT    { $$ = mknode($1,NULL,NULL); }
+             | HEX_LIT    { $$ = mknode($1,NULL,NULL); }
+             | REAL_LIT   { $$ = mknode($1,NULL,NULL); }
+             | CHAR_LIT   { $$ = mknode($1,NULL,NULL); }
+             | STRING_LTL { $$ = mknode($1,NULL,NULL); } ;
+%%
+int main(void){
+    return yyparse();
+}
