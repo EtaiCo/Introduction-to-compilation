@@ -18,6 +18,7 @@ string                   { return STRING; }
 "int*"                   { return INTPTR; }
 "char*"                  { return CHARPTR; }
 "real*"                  { return REALPTR; }
+type                     { return TYPE; }
 
 if                       { return IF; }
 elif                     { return ELIF; }
@@ -38,9 +39,6 @@ call                     { return CALL;  }
 and                      { return AND;   }
 not                      { return NOT;   }
 or                       { return OR;    }
-type                     { return TYPE; }
-_main_                   { return MAIN; }
-
 
 "=="                     { return EQL;      }
 "!="                     { return NOTEQL;   }
@@ -65,7 +63,6 @@ _main_                   { return MAIN; }
 "]"                      { return RBRACKET;   }
 
 "TRUE"                    { return TRUE;  }
-
 "FALSE"                    { return FALSE;  }
 
 0[xX][0-9A-Fa-f]+        { yylval.intVal = (int)strtol(yytext, NULL, 16); return INT_LIT;  }
@@ -76,7 +73,7 @@ _main_                   { return MAIN; }
 
 \'[\\]?[ -~]\'           { yylval.string = strdup(yytext); return CHAR_LIT; } 
 
-"\""[^"\n]*"\""          { yylval.string = strdup(yytext); return STRING_LTL; }
+"\""[^"\n]*"\""          { yylval.string = strdup(yytext); return STRING_LIT; }
 
 [a-zA-Z][a-zA-Z0-9_]*    { yylval.string = strdup(yytext); return IDENT; }
 

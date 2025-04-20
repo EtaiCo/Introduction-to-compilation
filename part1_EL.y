@@ -28,10 +28,11 @@
     struct node* nodePtr;
 }
 
-%token <intVal>     INT_LIT
-%token <realVal>    REAL_LIT
-%token <charVal>    CHAR_LIT
-%token <stringVal>  STRING_LIT IDENTIFIER
+%token <intVal> INT_LIT
+%token <realVal> REAL_LIT
+%token <charVal> CHAR_LIT
+%token <stringVal> STRING_LIT IDENT
+
 %token BOOL CHAR INT REAL STRING TYPE
 %token INTPTR CHARPTR REALPTR  
 %token IF ELIF ELSE WHILE FOR DO VARIABLE PAR
@@ -43,7 +44,6 @@
 %token ASSIGN PLUS MINUS MULTI DIV ADDRESS LENGTH
 %token SEMICOLON COLON COMMA LPAREN RPAREN LBRACKET RBRACKET 
 %token TRUE FALSE
-%token MAIN
 
 %left  OR
 %left  AND
@@ -55,203 +55,184 @@
 %right ADDRESS
 
 %type <nodePtr> code functions function params param_list
-%type <nodePtr> param var dec_list dec type id_list
+%type <nodePtr> param var dec_list dec type 
 %type <nodePtr> statements statement assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h update_exp condition
 %type <nodePtr> bl_stat rt_state func_call_state
 %type <nodePtr> func_call exp_list expression
-%type <nodePtr> nested_function
 
-/* =======================================================================*/
-/*                                Rules                                   */
-/* =======================================================================*/
 %%
 /* ----------------------------  Root Rule  -------------------------------*/
-code
-    : functions                            /* נקודת הכניסה */
-        { $$ = mknode("code", $1, NULL);
-          visualize_ast($$,"",1); }
+code :
+    functions { $$ = $1; printTree($$,0)}          
     ;
 
 /* --------------------------- Functions list -----------------------------*/
-functions
-    : function                             { $$ = $1; }
-    | function functions                   { $$ = mknode("functions",$1,$2); }
+functions :
+      function functions                   { $$ = mknode("FUNCS",$1,$2); }
+    |  function                              { $$ = $1; }
     ;
 
 /* ------------------------ Single function rule -------------------------*/
-function
-    /* --- פונקציית MAIN ללא פרמטרים והחזרת void ---*/
-    : DEF MAIN '(' ')' ':' var BEGIN_TOKEN statements END
-        { $$ = mknode("FUNC",
-                      mknode("main", NULL, $6),
-                      mknode("body",$8,NULL)); }
+function : 
+    DEF IDENT '(' params ')' ':' RETURNS type var T_BEGIN statements END
+    {
+        node* idN = mknode($2, NULL, NULL);
+        node* paramsN = mknode("PARAMS", $4, NULL);
+        node* returnsN = mknode("RETURNS", $7, NULL);
+        node* bodyN = mknode("BODY", $8, $10);
+        node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
+        $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
+    }
 
-    /* --- חתימה: def id(pars): returns <type> var ... ---*/
-    | DEF IDENTIFIER '(' parameters ')' ':' RETURNS type var
-      BEGIN_TOKEN statements END
-        { $$ = mknode("FUNC",
-                      mknode($2,$4,mknode("ret",$8,$9)),
-                      mknode("body",$11,NULL)); }
+  | DEF IDENT '(' params ')' ':' var T_BEGIN statements END
+    {
+        node* idN = mknode($2, NULL, NULL);
+        node* paramsN = mknode("PARAMS", $4, NULL);
+        node* bodyN = mknode("BODY", $7, $9);
+        $$ = mknode("PROC", idN, mknode("PROC_IN", paramsN, bodyN));
+    }
+;
 
-    /* --- חתימה: def id(pars): var ...  (void) ---*/
-    | DEF IDENTIFIER '(' parameters ')' ':' var
-      BEGIN_TOKEN statements END
-        { $$ = mknode("FUNC",
-                      mknode($2,$4,NULL),
-                      mknode("body",$9,NULL)); }
+
+/* --------------------- param declarations ---------------------------*/
+params :                                 
+    { $$ = NULL; }
+    | param_list                      { $$ = $1;   }
     ;
 
-/* --------------------- Parameter declarations ---------------------------*/
-parameters
-    : /* empty */                         { $$ = NULL; }
-    | parameter_list                      { $$ = $1;   }
+param_list :
+    param                           { $$ = $1; }
+    | param ';' param_list        { $$ = mknode("PARAMS",$1,$3); }
     ;
 
-parameter_list
-    : parameter                           { $$ = $1; }
-    | parameter ';' parameter_list        { $$ = mknode("PARAMS",$1,$3); }
+param : 
+            PAR type COLON ID {$$=mkNode("PARAM",$2,mkNode($4,NULL,NULL));}
+            ;
+
+
+/* -----------------------  type (atomic) ---------------------------------*/
+type : 
+      INT         { $$ = mknode("INT",NULL,NULL);  }
+    | CHAR        { $$ = mknode("CHAR",NULL,NULL); }
+    | BOOL        { $$ = mknode("BOOL",NULL,NULL); }
+    | STRING      { $$ = mknode("STRING",NULL,NULL);}
+    | REAL        { $$ = mknode("REAL",NULL,NULL); }
+    | CHARPTR     { $$ = mknode("CHARPTR",NULL,NULL);}
+    | INTPTR      { $$ = mknode("INTPTR",NULL,NULL);}
+    | REALPTR     { $$ = mknode("REALPTR",NULL,NULL);}
     ;
 
-parameter
-    : PAR type ':' IDENTIFIER             { $$ = mknode($4,$2,NULL); }
+/* -------------------  id‑list  ------------------*/
+idents : 
+      IDENT ':' literal 
+        { $$ = mkNode("VAR_ASSIGN", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), $3); }
+
+    | IDENT 
+        { $$ = mkNode("VAR_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), NULL); }
+
+    | IDENT '[' INT_LIT ']' 
+        { $$ = mkNode("ARRAY_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), mkNode($3, NULL, NULL)); }
+
+    | IDENT '[' INT_LIT ']' ':' STRING_LIT 
+        { 
+            $$ = mkNode("ARRAY_INIT",
+                        mkNode("ARRAY_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), mkNode($3, NULL, NULL)),
+                        mkNode($6, NULL, NULL)); 
+        }
     ;
+
+literal :
+          INT_LIT      { $$ = mkNode("INT", mkNode($1, NULL, NULL), NULL); }
+        | TRUE         { $$ = mkNode("BOOL", mkNode("true", NULL, NULL), NULL); }
+        | FALSE        { $$ = mkNode("BOOL", mkNode("false", NULL, NULL), NULL); }
+        | CHAR_LIT     { $$ = mkNode("CHAR", mkNode($1, NULL, NULL), NULL); }
+        | STRING_LIT   { $$ = mkNode("STRING", mkNode($1, NULL, NULL), NULL); }
+        | REAL_LIT     { $$ = mkNode("REAL", mkNode($1, NULL, NULL), NULL); }
+        | NULLL        { $$ = mkNode("NULL", NULL, NULL); }
+        ;
 
 /* -------------------  Local‑var block  ----------------------------------*/
-var
-    : /* empty */                         { $$ = NULL; }
-    | VAR declaration_list                { $$ = mknode("VAR",$2,NULL); }
+var :                                     
+    { $$ = NULL; }
+    | VAR dec_list                { $$ = mknode("VAR",$2,NULL); }
     ;
 
-declaration_list
-    : declaration                         { $$ = $1; }
-    | declaration declaration_list        { $$ = mknode("decls",$1,$2); }
+dec_list : 
+    dec                        { $$ = $1; }
+    | declaration dec_list        { $$ = mknode("DECS",$1,$2); }
     ;
 
-declaration
+dec
     : TYPE type ':' id_list ';'           { $$ = mknode("DECL",$2,$4); }
     ;
 
-/* -----------------------  type (atomic) ---------------------------------*/
-type
-    : BOOL        { $$ = mknode("BOOL",NULL,NULL); }
-    | CHAR        { $$ = mknode("CHAR",NULL,NULL); }
-    | INT         { $$ = mknode("INT",NULL,NULL);  }
-    | REAL_TYPE   { $$ = mknode("REAL",NULL,NULL); }
-    | STRING      { $$ = mknode("STRING",NULL,NULL);}
-    | INT_PTR     { $$ = mknode("INT_PTR",NULL,NULL);}
-    | CHAR_PTR    { $$ = mknode("CHAR_PTR",NULL,NULL);}
-    | REAL_PTR    { $$ = mknode("REAL_PTR",NULL,NULL);}
-    ;
-
-/* -------------------  id‑list (with אופציונל ערך/גודל) ------------------*/
-id_list
-    : IDENTIFIER                              { $$ = mknode($1,NULL,NULL); }
-    | IDENTIFIER ',' id_list                  { $$ = mknode($1,NULL,$3); }
-    | IDENTIFIER ':' expression               { $$ = mknode($1,$3,NULL); }
-    | IDENTIFIER ':' expression ',' id_list   { $$ = mknode($1,$3,$5); }
-
-    /* מערך עם גודל בלבד */
-    | IDENTIFIER '[' INTEGER ']'              {
-          char buf[32]; sprintf(buf,"%d",$3);
-          $$ = mknode($1, mknode(buf,NULL,NULL), NULL); }
-
-    | IDENTIFIER '[' INTEGER ']' ',' id_list  {
-          char buf[32]; sprintf(buf,"%d",$3);
-          $$ = mknode($1, mknode(buf,NULL,NULL), $6); }
-
-    /* מערך עם גודל ואתחול‑מחרוזת  */
-    | IDENTIFIER '[' INTEGER ']' ':' STRING_LITERAL {
-          char buf[32]; sprintf(buf,"%d",$3);
-          $$ = mknode($1, mknode(buf,NULL,NULL),
-                           mknode($6,NULL,NULL)); }
-
-    | IDENTIFIER '[' INTEGER ']' ':' STRING_LITERAL ',' id_list {
-          char buf[32]; sprintf(buf,"%d",$3);
-          $$ = mknode($1, mknode(buf,NULL,NULL),
-                           mknode($6,NULL,$8)); }
-    ;
-
 /* ------------------------- Statements seq. ------------------------------*/
-statements
-    : statement                             { $$ = $1; }
-    | statement statements                  { $$ = mknode("statements",$1,$2); }
-    | nested_function                       { $$ = $1; }
-    | nested_function statements            { $$ = mknode("statements",$1,$2); }
-    ;
+statements :
+     {$$ = mkNode("empty_list", NULL,NULL);}
+            | statement {$$ = $1;}
+            | stat stat_list {$$ = mkNode("statements", $1, $2);}
+            ;
 
-/* -------------------- Allow nested (local) functions --------------------*/
-nested_function
-    : DEF IDENTIFIER '(' parameters ')' ':' RETURNS type var
-      BEGIN_TOKEN statements END
-        { $$ = mknode("nested_func",
-                      mknode($2,$4,mknode("ret",$8,$9)),
-                      mknode("body",$11,NULL)); }
-    | DEF IDENTIFIER '(' parameters ')' ':' var
-      BEGIN_TOKEN statements END
-        { $$ = mknode("nested_func",
-                      mknode($2,$4,NULL),
-                      mknode("body",$9,NULL)); }
-    ;
 
 /* --------------------------- Single statement ---------------------------*/
-statement
-    : assignment_statement
-    | if_statement
-    | while_statement
-    | for_statement
-    | do_while_statement
-    | block_statement
-    | return_statement
-    | function_call_statement
-    ;
-
-/* ------------------------- Assignment variants --------------------------*/
+stat:
+            function {$$=$1;}
+            | assignment_stat {$$ = $1;}
+            | if_stat {$$ = $1;}
+            | while_stat {$$ = $1;}
+            | for_stat {$$ = $1;}
+            | do_while_stat {$$ = $1;}
+            | block_stat {$$ = $1;}
+            | return_stat {$$ = $1;}
+            | call_stat {$$ = $1;}
+        ;
+////////////////////// הגענו עד לפה /* ------------------------- Assignment variants --------------------------*/
 assignment_statement
-    : IDENTIFIER ASSIGN expression ';'      /* x = expr; */
+    : IDENT ASSIGN expression ';'      /* x = expr; */
         { $$ = mknode("assign",
                       mknode($1,NULL,NULL), $3); }
 
     /* arr[index] = 'c'; */
-    | IDENTIFIER '[' expression ']' ASSIGN CHAR_LITERAL ';' {
+    | IDENT '[' expression ']' ASSIGN CHAR_LITERAL ';' {
           char cbuf[2]={$6,'\0'};
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
                       mknode(cbuf,NULL,NULL)); }
 
     /* *p = expr;  (dereferenced pointer) */
-    | MULT IDENTIFIER ASSIGN expression ';' {
+    | MULT IDENT ASSIGN expression ';' {
           $$ = mknode("pointer_assign",
                       mknode($2,NULL,NULL), $4); }
 
     /* x = &y;  (reference assign) */
-    | IDENTIFIER ASSIGN AMPERSAND IDENTIFIER ';' {
+    | IDENT ASSIGN AMPERSAND IDENT ';' {
           $$ = mknode("ref_assign",
                       mknode($1,NULL,NULL),
                       mknode($4,NULL,NULL)); }
 
     /* x = null; */
-    | IDENTIFIER ASSIGN NULL_TOKEN ';' {
+    | IDENT ASSIGN NULL_TOKEN ';' {
           $$ = mknode("null_assign",
                       mknode($1,NULL,NULL),
                       mknode("null",NULL,NULL)); }
 
     /* arr[i] = <int> */
-    | IDENTIFIER '[' expression ']' ASSIGN INTEGER ';' {
+    | IDENT '[' expression ']' ASSIGN INTEGER ';' {
           char buf[32]; sprintf(buf,"%d",$6);
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
                       mknode(buf,NULL,NULL)); }
 
     /* arr[i] = "str" */
-    | IDENTIFIER '[' expression ']' ASSIGN STRING_LITERAL ';' {
+    | IDENT '[' expression ']' ASSIGN STRING_LITERAL ';' {
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
                       mknode($6,NULL,NULL)); }
 
     /* arr[i] = expr */
-    | IDENTIFIER '[' expression ']' ASSIGN expression ';' {
+    | IDENT '[' expression ']' ASSIGN expression ';' {
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL), $6); }
     ;
@@ -306,7 +287,7 @@ for_statement
     ;
 
 for_header
-    : '(' IDENTIFIER ASSIGN expression ';'
+    : '(' IDENT ASSIGN expression ';'
           expression ';'
           update_exp ')'                           {
           $$ = mknode("for-header",
@@ -315,7 +296,7 @@ for_header
     ;
 
 update_exp
-    : IDENTIFIER ASSIGN expression                 {
+    : IDENT ASSIGN expression                 {
           $$ = mknode("update",
                       mknode($1,NULL,NULL),$3); }
     ;
@@ -331,8 +312,8 @@ condition
 
 /* --------------------  BEGIN … END compound‑statement -------------------*/
 block_statement
-    : BEGIN_TOKEN statements END                   { $$ = mknode("block",$2,NULL); }
-    | var BEGIN_TOKEN statements END               { $$ = mknode("block",$3,$1); }
+    : T_BEGIN statements END                   { $$ = mknode("block",$2,NULL); }
+    | var T_BEGIN statements END               { $$ = mknode("block",$3,$1); }
     ;
 
 /* -----------------------------  Return  ---------------------------------*/
@@ -343,16 +324,16 @@ return_statement
 /* -------------------------  Function‑call stmt --------------------------*/
 function_call_statement
     : function_call ';'                            { $$ = $1; }
-    | IDENTIFIER ASSIGN function_call ';'          {
+    | IDENT ASSIGN function_call ';'          {
           $$ = mknode("assign",
                       mknode($1,NULL,NULL),$3); }
     ;
 
 /* -------------------------  Function call expr --------------------------*/
 function_call
-    : CALL IDENTIFIER '(' ')'                      {
+    : CALL IDENT '(' ')'                      {
           $$ = mknode("call",mknode($2,NULL,NULL),NULL); }
-    | CALL IDENTIFIER '(' expr_list ')'            {
+    | CALL IDENT '(' expr_list ')'            {
           $$ = mknode("call",mknode($2,NULL,NULL),$4); }
     ;
 
@@ -376,7 +357,7 @@ expression
     | CHAR_LITERAL  { char buf[2]={$1,'\0'};
                       $$ = mknode(buf,NULL,NULL); }
 
-    | IDENTIFIER    { $$ = mknode($1,NULL,NULL); }
+    | IDENT    { $$ = mknode($1,NULL,NULL); }
 
     /* ---- arithmetic / logical binary ----*/
     | expression PLUS   expression  { $$ = mknode("+",$1,$3); }
@@ -388,7 +369,7 @@ expression
     /* ---- unary ----*/
     | MINUS     expression          { $$ = mknode("unary-",$2,NULL); }
     | AMPERSAND expression          { $$ = mknode("&",$2,NULL); }
-    | MULT      IDENTIFIER          { $$ = mknode("deref",mknode($2,NULL,NULL),NULL); }
+    | MULT      IDENT          { $$ = mknode("deref",mknode($2,NULL,NULL),NULL); }
     | MULT      expression          { $$ = mknode("unary*", $2,NULL); }
 
     /* ---- grouping ----*/
@@ -407,7 +388,7 @@ expression
     | expression OR  expression     { $$ = mknode("or",$1,$3); }
 
     /* ---- array index ----*/
-    | IDENTIFIER '[' expression ']' { $$ = mknode("index",mknode($1,NULL,NULL),$3); }
+    | IDENT '[' expression ']' { $$ = mknode("index",mknode($1,NULL,NULL),$3); }
 
     /* ---- nested call ----*/
     | function_call                 { $$ = $1; }
