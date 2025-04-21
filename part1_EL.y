@@ -300,7 +300,7 @@ condition :
     ;
 
 /* -----------------------------  Return  ---------------------------------*/
-return_statement :
+rt_state :
     RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
     ;
 
