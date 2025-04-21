@@ -169,7 +169,7 @@ dec :
     ;
 
 /* ------------------------- Statements seq. ------------------------------*/
-state :
+statements :
      {$$ = mkNode("empty_list", NULL,NULL);}
             | state {$$ = $1;}
             | state statements {$$ = mkNode("statements", $1, $2);}
