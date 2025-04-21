@@ -55,8 +55,8 @@
 %right ADDRESS
 
 %type <nodePtr> code functions function params param_list
-%type <nodePtr> param var dec_list dec type id_list 
-%type <nodePtr> statements statement assign_state
+%type <nodePtr> param var dec_list dec type idents 
+%type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp condition
 %type <nodePtr> bl_state rt_state func_call_state
@@ -165,7 +165,7 @@ dec_list :
     ;
 
 dec :
-    TYPE type ':' id_list ';'           { $$ = mknode("DECL",$2,$4); }
+    TYPE type ':' idents ';'           { $$ = mknode("DECL",$2,$4); }
     ;
 
 /* ------------------------- Statements seq. ------------------------------*/
