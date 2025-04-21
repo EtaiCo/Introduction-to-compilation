@@ -1,4 +1,4 @@
-def foo(par1 int:x; par2 int:y; par3 int:z; par4 real:f):
+def foo(par1 int:x; par2 int:y; par3 int:z; par4 real:f): returns char
 begin
     if x > y:
     begin
@@ -10,6 +10,7 @@ begin
         z = y * 2;
         f = z;
     end
+        return 'a';
 end
 
 def goo(): returns char

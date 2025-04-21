@@ -17,7 +17,6 @@
 
      node *mknode(char* token, node* left, node* right);
      void printTree(node* tree, int level);
-     void visualize_ast(node* root,const char* branch_prefix,int is_left_branch); /*לתקן */
 %}
 
 %union {
@@ -407,38 +406,29 @@ int main(void)
     return n;
 }
 
- void printTabs(int k){ while(k--) printf("  "); }
-
- void printTree(node *t, int lvl)
-{
-    if(!t) return;
-    printTabs(lvl);
-    printf("%s\n",t->token);
-    printTree(t->left ,lvl+1);
-    printTree(t->right,lvl+1);
+ void printTabs(int k){
+    for(int i=0; i<k; i++) 
+        printf("  ");
 }
 
-/* --------  ascii‑art visualization (like tree‑command)  ---------------*/
- void visualize_ast(node *root,
-                          const char *prefix,
-                          int is_left)
-{
-    if(!root) return;
+void printTree(node *t, int indent) {
+    if (!t) return;
 
-    printf("%s%s── %s\n", prefix,
-           is_left ? "├" : "└", root->token);
+    // פותחים סוגריים והטוקן
+    printTabs(indent);
+    printf("(%s", t->token);
 
-    char next[512];
-    snprintf(next,sizeof(next), "%s%s   ",
-             prefix, is_left ? "│" : " ");
-
-    if(root->left || root->right)
-    {
-        visualize_ast(root->left , next, 1);
-        visualize_ast(root->right, next, 0);
+    // ילדים (linked-list על ידי right)
+    if (t->left) {
+        printf("\n");
+        for (node *c = t->left; c; c = c->right) {
+            printTree(c, indent+1);
+        }
+        // סוגרים בשורה נפרדת
+        printTabs(indent);
     }
+    printf(")\n");
 }
-
 /* -------------------------  error handler -------------------------------*/
 int yyerror(const char *s)
 {
