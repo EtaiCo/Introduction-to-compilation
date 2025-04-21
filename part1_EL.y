@@ -55,7 +55,7 @@
 %right ADDRESS
 
 %type <nodePtr> code functions function params param_list
-%type <nodePtr> param var dec_list dec type 
+%type <nodePtr> param var dec_list dec type id_list 
 %type <nodePtr> statements statement assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp condition
@@ -108,7 +108,7 @@ param_list :
     ;
 
 param : 
-            PAR type COLON ID {$$=mkNode("PARAM",$2,mkNode($4,NULL,NULL));}
+            PAR type COLON IDENT {$$=mkNode("PARAM",$2,mkNode($4,NULL,NULL));}
             ;
 
 
@@ -156,12 +156,12 @@ literal :
 /* -------------------  Local‑var block  ----------------------------------*/
 var :                                     
     { $$ = NULL; }
-    | VAR dec_list                { $$ = mknode("VAR",$2,NULL); }
+    | VARIABLE dec_list                { $$ = mknode("VAR",$2,NULL); }
     ;
 
 dec_list : 
     dec                        { $$ = $1; }
-    | declaration dec_list        { $$ = mknode("DECS",$1,$2); }
+    | dec dec_list        { $$ = mknode("DECS",$1,$2); }
     ;
 
 dec :
@@ -172,7 +172,7 @@ dec :
 statements :
      {$$ = mkNode("empty_list", NULL,NULL);}
             | statement {$$ = $1;}
-            | state stat_list {$$ = mkNode("statements", $1, $2);}
+            | state statements {$$ = mkNode("statements", $1, $2);}
             ;
 
 
@@ -185,8 +185,8 @@ state :
             | for_state {$$ = $1;}
             | do_while_state {$$ = $1;}
             | bl_state {$$ = $1;}
-            | return_state {$$ = $1;}
-            | call_state {$$ = $1;}
+            | rt_state {$$ = $1;}
+            | func_call_state {$$ = $1;}
         ;
 /* ------------------------- Assignment variants --------------------------*/
 assign_state :
@@ -220,7 +220,7 @@ assign_state :
                       mknode("null",NULL,NULL)); }
 
     /* arr[i] = <int> */
-    | IDENT '[' expression ']' ASSIGN INTEGER ';' {
+    | IDENT '[' expression ']' ASSIGN INT ';' {
           char buf[32]; sprintf(buf,"%d",$6);
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
@@ -337,7 +337,7 @@ exp_list :
 /* ---------------------------  Expressions  ------------------------------*/
 expression :
     /* ---- primary ----*/
-     INTEGER       { char buf[32]; sprintf(buf,"%d",$1);
+     INT       { char buf[32]; sprintf(buf,"%d",$1);
                       $$ = mknode(buf,NULL,NULL); }
 
     | REAL          { char buf[64]; sprintf(buf,"%f",$1);
