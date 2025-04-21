@@ -58,8 +58,8 @@
 %type <nodePtr> param var dec_list dec type 
 %type <nodePtr> statements statement assign_state
 %type <nodePtr> if_state while_state do_while_state
-%type <nodePtr> for_state for_h update_exp condition
-%type <nodePtr> bl_stat rt_state func_call_state
+%type <nodePtr> for_state for_h advance_exp condition
+%type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression
 
 %%
@@ -164,56 +164,57 @@ dec_list :
     | declaration dec_list        { $$ = mknode("DECS",$1,$2); }
     ;
 
-dec
-    : TYPE type ':' id_list ';'           { $$ = mknode("DECL",$2,$4); }
+dec :
+    TYPE type ':' id_list ';'           { $$ = mknode("DECL",$2,$4); }
     ;
 
 /* ------------------------- Statements seq. ------------------------------*/
 statements :
      {$$ = mkNode("empty_list", NULL,NULL);}
             | statement {$$ = $1;}
-            | stat stat_list {$$ = mkNode("statements", $1, $2);}
+            | state stat_list {$$ = mkNode("statements", $1, $2);}
             ;
 
 
 /* --------------------------- Single statement ---------------------------*/
-stat:
+state :
             function {$$=$1;}
-            | assignment_stat {$$ = $1;}
-            | if_stat {$$ = $1;}
-            | while_stat {$$ = $1;}
-            | for_stat {$$ = $1;}
-            | do_while_stat {$$ = $1;}
-            | block_stat {$$ = $1;}
-            | return_stat {$$ = $1;}
-            | call_stat {$$ = $1;}
+            | assign_state {$$ = $1;}
+            | if_state {$$ = $1;}
+            | while_state {$$ = $1;}
+            | for_state {$$ = $1;}
+            | do_while_state {$$ = $1;}
+            | bl_state {$$ = $1;}
+            | return_state {$$ = $1;}
+            | call_state {$$ = $1;}
         ;
-////////////////////// הגענו עד לפה /* ------------------------- Assignment variants --------------------------*/
-assignment_statement
-    : IDENT ASSIGN expression ';'      /* x = expr; */
+/* ------------------------- Assignment variants --------------------------*/
+assign_state :
+    /* x = expr; */
+     IDENT ASSIGN expression ';'      
         { $$ = mknode("assign",
                       mknode($1,NULL,NULL), $3); }
 
     /* arr[index] = 'c'; */
-    | IDENT '[' expression ']' ASSIGN CHAR_LITERAL ';' {
+    | IDENT '[' expression ']' ASSIGN CHAR_LIT ';' {
           char cbuf[2]={$6,'\0'};
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
                       mknode(cbuf,NULL,NULL)); }
 
     /* *p = expr;  (dereferenced pointer) */
-    | MULT IDENT ASSIGN expression ';' {
+    | MULTI IDENT ASSIGN expression ';' {
           $$ = mknode("pointer_assign",
                       mknode($2,NULL,NULL), $4); }
 
     /* x = &y;  (reference assign) */
-    | IDENT ASSIGN AMPERSAND IDENT ';' {
-          $$ = mknode("ref_assign",
+    | IDENT ASSIGN ADDRESS IDENT ';' {
+          $$ = mknode("adder_assign",
                       mknode($1,NULL,NULL),
                       mknode($4,NULL,NULL)); }
 
     /* x = null; */
-    | IDENT ASSIGN NULL_TOKEN ';' {
+    | IDENT ASSIGN NULLL ';' {
           $$ = mknode("null_assign",
                       mknode($1,NULL,NULL),
                       mknode("null",NULL,NULL)); }
@@ -226,7 +227,7 @@ assignment_statement
                       mknode(buf,NULL,NULL)); }
 
     /* arr[i] = "str" */
-    | IDENT '[' expression ']' ASSIGN STRING_LITERAL ';' {
+    | IDENT '[' expression ']' ASSIGN STRING_LIT ';' {
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
                       mknode($6,NULL,NULL)); }
@@ -238,123 +239,113 @@ assignment_statement
     ;
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
-if_statement
-    : IF expression ':' block_statement                {
-          $$ = mknode("if",$2,$4); }
+if_state :
+      IF expression ':' bl_state
+        { $$ = mkNode("if", $2, $4); }
 
-    | IF expression ':' block_statement
-      ELSE ':' block_statement                         {
-          $$ = mknode("if-else",$2,
-                      mknode("then",$4,
-                             mknode("else",$7,NULL))); }
+    | IF expression ':' bl_state ELSE ':' bl_state
+        { $$ = mkNode("if_else", $2, mkNode("then", $4, mkNode("else", $7, NULL))); }
 
-    | IF expression ':' block_statement
-      ELIF expression ':' block_statement              {
-          $$ = mknode("if-elif",$2,
-                      mknode("then",$4,
-                             mknode("elif-cond",$6,$8))); }
+    | IF expression ':' bl_state ELIF expression ':' bl_state
+        { $$ = mkNode("if_elif", $2, mkNode("then", $4, mkNode("elif", $6, $8))); }
 
-    | IF expression ':' block_statement
-      ELIF expression ':' block_statement
-      ELSE ':' block_statement                         {
-          $$ = mknode("if-elif-else",$2,
-                      mknode("then",$4,
-                             mknode("elif-cond",$6,
-                                    mknode("elif-then",$8,
-                                           mknode("else",$11,NULL))))); }
+    | IF expression ':' bl_state ELIF expression ':' bl_state ELSE ':' bl_state
+        { $$ = mkNode("if_elif-else", $2, mkNode("then", $4, mkNode("elif", $6, mkNode("elif-then", $8, mkNode("else", $11, NULL))))); }
     ;
 
 /* -----------------------------  WHILE loop ------------------------------*/
-while_statement
-    : WHILE expression ':' block_statement {
+while_state :
+      WHILE expression ':' bl_state {
           $$ = mknode("while",$2,$4); }
     ;
 
 /* ---------------------------  DO‑WHILE loop -----------------------------*/
-do_while_statement
-    : DO ':' block_statement WHILE expression ';' {
-          $$ = mknode("do-while",$3,
-                      mknode("cond",$5,NULL)); }
+do_while_state :
+      DO ':' bl_state WHILE expression ';' {
+          $$ = mknode("do_while",$3,
+                      mknode("condition",$5,NULL)); }
     ;
 
 /* -----------------------------  FOR loop --------------------------------*/
-for_statement
-    : FOR for_header ':' block_statement            {
+for_state :
+     FOR for_h ':' bl_state            {
           $$ = mknode("for",$2,$4); }
-    | FOR for_header ':' var block_statement        {
+    | FOR for_h ':' var bl_state        {
           $$ = mknode("for",$2,
                       mknode("block",$5,$4)); }
     ;
 
-for_header
-    : '(' IDENT ASSIGN expression ';'
+for_h :
+      '(' IDENT ASSIGN expression ';'
           expression ';'
-          update_exp ')'                           {
-          $$ = mknode("for-header",
+          advance_exp ')'                           {
+          $$ = mknode("for_header",
                       mknode("init",mknode($2,NULL,NULL),$4),
                       mknode("loop",$6,$8)); }
     ;
 
-update_exp
-    : IDENT ASSIGN expression                 {
+advance_exp :
+     IDENT ASSIGN expression                 {
           $$ = mknode("update",
                       mknode($1,NULL,NULL),$3); }
     ;
 
 /* -----------------------  Boolean condition helper ----------------------*/
-condition
-    : expression                                   { $$ = $1; }
+condition :
+     expression                                   { $$ = $1; }
     | NOT condition                                { $$ = mknode("not",$2,NULL); }
     | '(' condition ')'                            { $$ = $2; }
     | TRUE                                         { $$ = mknode("true",NULL,NULL); }
     | FALSE                                        { $$ = mknode("false",NULL,NULL); }
     ;
 
+/* -----------------------------  Return  ---------------------------------*/
+return_statement :
+    RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
+    ;
+
 /* --------------------  BEGIN … END compound‑statement -------------------*/
-block_statement
-    : T_BEGIN statements END                   { $$ = mknode("block",$2,NULL); }
+bl_state :
+    T_BEGIN statements END                   { $$ = mknode("block",$2,NULL); }
     | var T_BEGIN statements END               { $$ = mknode("block",$3,$1); }
     ;
 
-/* -----------------------------  Return  ---------------------------------*/
-return_statement
-    : RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
-    ;
+
 
 /* -------------------------  Function‑call stmt --------------------------*/
-function_call_statement
-    : function_call ';'                            { $$ = $1; }
-    | IDENT ASSIGN function_call ';'          {
+func_call_state :
+     func_call ';'                            { $$ = $1; }
+    | IDENT ASSIGN func_call ';'          {
           $$ = mknode("assign",
                       mknode($1,NULL,NULL),$3); }
     ;
 
 /* -------------------------  Function call expr --------------------------*/
-function_call
-    : CALL IDENT '(' ')'                      {
+func_call :
+      CALL IDENT '(' ')'                      {
           $$ = mknode("call",mknode($2,NULL,NULL),NULL); }
-    | CALL IDENT '(' expr_list ')'            {
+    | CALL IDENT '(' exp_list ')'            {
           $$ = mknode("call",mknode($2,NULL,NULL),$4); }
     ;
 
 /* --------------------------  Expression list ----------------------------*/
-expr_list
-    : expression                                   { $$ = $1; }
-    | expression ',' expr_list                     { $$ = mknode("expr_list",$1,$3); }
+exp_list :
+      expression                                   { $$ = $1; }
+    | expression ',' exp_list                     { $$ = mknode("exp_list",$1,$3); }
     ;
 
 /* ---------------------------  Expressions  ------------------------------*/
-expression
+expression :
     /* ---- primary ----*/
-    : INTEGER       { char buf[32]; sprintf(buf,"%d",$1);
+     INTEGER       { char buf[32]; sprintf(buf,"%d",$1);
                       $$ = mknode(buf,NULL,NULL); }
 
     | REAL          { char buf[64]; sprintf(buf,"%f",$1);
                       $$ = mknode(buf,NULL,NULL); }
 
-    | STRING_LITERAL { $$ = mknode($1,NULL,NULL); }
+    | STRING_LIT { $$ = mknode($1,NULL,NULL); }
 
-    | CHAR_LITERAL  { char buf[2]={$1,'\0'};
+    | CHAR_LIT  { char buf[2]={$1,'\0'};
                       $$ = mknode(buf,NULL,NULL); }
 
     | IDENT    { $$ = mknode($1,NULL,NULL); }
@@ -362,36 +353,35 @@ expression
     /* ---- arithmetic / logical binary ----*/
     | expression PLUS   expression  { $$ = mknode("+",$1,$3); }
     | expression MINUS  expression  { $$ = mknode("-",$1,$3); }
-    | expression MULT   expression  { $$ = mknode("*",$1,$3); }
+    | expression MULTI   expression  { $$ = mknode("*",$1,$3); }
     | expression DIV    expression  { $$ = mknode("/",$1,$3); }
-    | expression MODULO expression  { $$ = mknode("%",$1,$3); }
 
     /* ---- unary ----*/
     | MINUS     expression          { $$ = mknode("unary-",$2,NULL); }
-    | AMPERSAND expression          { $$ = mknode("&",$2,NULL); }
-    | MULT      IDENT          { $$ = mknode("deref",mknode($2,NULL,NULL),NULL); }
-    | MULT      expression          { $$ = mknode("unary*", $2,NULL); }
+    | ADDRESS expression          { $$ = mknode("&",$2,NULL); }
+    | MULTI      IDENT          { $$ = mknode("deref",mknode($2,NULL,NULL),NULL); }
+    | MULTI      expression          { $$ = mknode("unary*", $2,NULL); }
 
     /* ---- grouping ----*/
     | '(' expression ')'            { $$ = $2; }
 
     /* ---- comparison ----*/
-    | expression EQ expression      { $$ = mknode("==",$1,$3); }
-    | expression NE expression      { $$ = mknode("!=",$1,$3); }
-    | expression GE expression      { $$ = mknode(">=",$1,$3); }
-    | expression LE expression      { $$ = mknode("<=",$1,$3); }
-    | expression GT expression      { $$ = mknode(">", $1,$3); }
-    | expression LT expression      { $$ = mknode("<", $1,$3); }
+    | expression EQL expression      { $$ = mknode("==",$1,$3); }
+    | expression NOTEQL expression      { $$ = mknode("!=",$1,$3); }
+    | expression GREATEREQL expression      { $$ = mknode(">=",$1,$3); }
+    | expression LESSEQL expression      { $$ = mknode("<=",$1,$3); }
+    | expression GREATER expression      { $$ = mknode(">", $1,$3); }
+    | expression LESS expression      { $$ = mknode("<", $1,$3); }
+
+     /* ---- array index ----*/
+    | IDENT '[' expression ']' { $$ = mknode("index",mknode($1,NULL,NULL),$3); }
 
     /* ---- logical ----*/
     | expression AND expression     { $$ = mknode("and",$1,$3); }
     | expression OR  expression     { $$ = mknode("or",$1,$3); }
 
-    /* ---- array index ----*/
-    | IDENT '[' expression ']' { $$ = mknode("index",mknode($1,NULL,NULL),$3); }
-
     /* ---- nested call ----*/
-    | function_call                 { $$ = $1; }
+    | func_call                 { $$ = $1; }
     ;
 %%  /* ===================  C‑code section ================================*/
 
