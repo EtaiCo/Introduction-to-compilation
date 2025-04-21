@@ -42,7 +42,6 @@
 %token AND NOT OR
 %token EQL NOTEQL GREATEREQL LESSEQL GREATER LESS
 %token ASSIGN PLUS MINUS MULTI DIV ADDRESS LENGTH
-%token SEMICOLON COLON COMMA LPAREN RPAREN LBRACKET RBRACKET 
 %token TRUE FALSE
 
 %left  OR
@@ -55,7 +54,7 @@
 %right ADDRESS
 
 %type <nodePtr> code functions function params param_list
-%type <nodePtr> param var dec_list dec type idents 
+%type <nodePtr> param var dec_list dec type literal  idents 
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp condition
@@ -65,8 +64,8 @@
 %%
 /* ----------------------------  Root Rule  -------------------------------*/
 code :
-    functions { $$ = $1; printTree($$,0)}          
-    ;
+    functions { $$ = $1; printTree($$,0); }          
+;
 
 /* --------------------------- Functions list -----------------------------*/
 functions :
@@ -80,8 +79,8 @@ function :
     {
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
-        node* returnsN = mknode("RETURNS", $7, NULL);
-        node* bodyN = mknode("BODY", $8, $10);
+        node* returnsN = mknode("RETURNS", $8, NULL);
+        node* bodyN = mknode("BODY", $9, $11);
         node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
         $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
     }
@@ -108,7 +107,7 @@ param_list :
     ;
 
 param : 
-            PAR type COLON IDENT {$$=mkNode("PARAM",$2,mkNode($4,NULL,NULL));}
+            PAR type ':' IDENT {$$=mknode("PARAM",$2,mknode($4,NULL,NULL));}
             ;
 
 
@@ -127,30 +126,32 @@ type :
 /* -------------------  id‑list  ------------------*/
 idents : 
       IDENT ':' literal 
-        { $$ = mkNode("VAR_ASSIGN", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), $3); }
+        { $$ = mknode("VAR_ASSIGN", mknode("IDENT", mknode($1,NULL,NULL), NULL), $3); }
 
     | IDENT 
-        { $$ = mkNode("VAR_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), NULL); }
+        { $$ = mknode("VAR_DECL", mknode("IDENT", mknode($1, NULL, NULL), NULL), NULL); }
 
     | IDENT '[' INT_LIT ']' 
-        { $$ = mkNode("ARRAY_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), mkNode($3, NULL, NULL)); }
+        { char sz[32]; sprintf(sz,"%d",$3);
+         $$ = mknode("ARRAY_DECL", mknode("IDENT", mknode($1, NULL, NULL), NULL), mknode(sz, NULL, NULL)); }
 
     | IDENT '[' INT_LIT ']' ':' STRING_LIT 
         { 
-            $$ = mkNode("ARRAY_INIT",
-                        mkNode("ARRAY_DECL", mkNode("IDENT", mkNode($1, NULL, NULL), NULL), mkNode($3, NULL, NULL)),
-                        mkNode($6, NULL, NULL)); 
+            $$ = mknode("ARRAY_INIT",
+                        mknode("ARRAY_DECL", mknode("IDENT", mknode($1, NULL, NULL), NULL), mknode($3, NULL, NULL)),
+                        mknode($6, NULL, NULL)); 
         }
     ;
 
 literal :
-          INT_LIT      { $$ = mkNode("INT", mkNode($1, NULL, NULL), NULL); }
-        | TRUE         { $$ = mkNode("BOOL", mkNode("true", NULL, NULL), NULL); }
-        | FALSE        { $$ = mkNode("BOOL", mkNode("false", NULL, NULL), NULL); }
-        | CHAR_LIT     { $$ = mkNode("CHAR", mkNode($1, NULL, NULL), NULL); }
-        | STRING_LIT   { $$ = mkNode("STRING", mkNode($1, NULL, NULL), NULL); }
-        | REAL_LIT     { $$ = mkNode("REAL", mkNode($1, NULL, NULL), NULL); }
-        | NULLL        { $$ = mkNode("NULL", NULL, NULL); }
+          INT_LIT      { char ibuf[32]; sprintf(ibuf,"%d",$1); $$ = mknode("INT", mknode(ibuf,NULL,NULL), NULL); }
+        | TRUE         { $$ = mknode("BOOL", mknode("true", NULL, NULL), NULL); }
+        | FALSE        { $$ = mknode("BOOL", mknode("false", NULL, NULL), NULL); }
+        | CHAR_LIT     { char cbuf[2] = {$1,'\0'}; $$ = mknode("CHAR", mknode(cbuf,NULL,NULL), NULL); }
+        | STRING_LIT   { $$ = mknode("STRING", mknode($1, NULL, NULL), NULL); }
+        | REAL_LIT     { char r[64]; sprintf(r,"%f",$1);
+                        $$ = mknode("REAL", mknode(r,NULL,NULL), NULL); }
+        | NULLL        { $$ = mknode("NULL", NULL, NULL); }
         ;
 
 /* -------------------  Local‑var block  ----------------------------------*/
@@ -170,9 +171,9 @@ dec :
 
 /* ------------------------- Statements seq. ------------------------------*/
 statements :
-     {$$ = mkNode("empty_list", NULL,NULL);}
+     {$$ = mknode("empty_list", NULL,NULL);}
             | state {$$ = $1;}
-            | state statements {$$ = mkNode("statements", $1, $2);}
+            | state statements {$$ = mknode("statements", $1, $2);}
             ;
 
 
@@ -220,7 +221,7 @@ assign_state :
                       mknode("null",NULL,NULL)); }
 
     /* arr[i] = <int> */
-    | IDENT '[' expression ']' ASSIGN INT ';' {
+    | IDENT '[' expression ']' ASSIGN INT_LIT ';' {
           char buf[32]; sprintf(buf,"%d",$6);
           $$ = mknode("array_assign",
                       mknode($1,$3,NULL),
@@ -241,16 +242,16 @@ assign_state :
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
 if_state :
       IF expression ':' bl_state
-        { $$ = mkNode("if", $2, $4); }
+        { $$ = mknode("if", $2, $4); }
 
     | IF expression ':' bl_state ELSE ':' bl_state
-        { $$ = mkNode("if_else", $2, mkNode("then", $4, mkNode("else", $7, NULL))); }
+        { $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL))); }
 
     | IF expression ':' bl_state ELIF expression ':' bl_state
-        { $$ = mkNode("if_elif", $2, mkNode("then", $4, mkNode("elif", $6, $8))); }
+        { $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8))); }
 
     | IF expression ':' bl_state ELIF expression ':' bl_state ELSE ':' bl_state
-        { $$ = mkNode("if_elif-else", $2, mkNode("then", $4, mkNode("elif", $6, mkNode("elif-then", $8, mkNode("else", $11, NULL))))); }
+        { $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL))))); }
     ;
 
 /* -----------------------------  WHILE loop ------------------------------*/
@@ -337,10 +338,10 @@ exp_list :
 /* ---------------------------  Expressions  ------------------------------*/
 expression :
     /* ---- primary ----*/
-     INT       { char buf[32]; sprintf(buf,"%d",$1);
+     INT_LIT       { char buf[32]; sprintf(buf,"%d",$1);
                       $$ = mknode(buf,NULL,NULL); }
 
-    | REAL          { char buf[64]; sprintf(buf,"%f",$1);
+    | REAL_LIT          { char buf[64]; sprintf(buf,"%f",$1);
                       $$ = mknode(buf,NULL,NULL); }
 
     | STRING_LIT { $$ = mknode($1,NULL,NULL); }
@@ -395,7 +396,7 @@ int main(void)
 }
 
 /* ----------------------  AST helper functions ---------------------------*/
-static node *mknode(char *token, node *left, node *right)
+ node *mknode(char *token, node *left, node *right)
 {
     node *n = (node*)malloc(sizeof(node));
     if (!n) { fprintf(stderr,"alloc node failed\n"); exit(1); }
@@ -406,9 +407,9 @@ static node *mknode(char *token, node *left, node *right)
     return n;
 }
 
-static void printTabs(int k){ while(k--) printf("  "); }
+ void printTabs(int k){ while(k--) printf("  "); }
 
-static void printTree(node *t, int lvl)
+ void printTree(node *t, int lvl)
 {
     if(!t) return;
     printTabs(lvl);
@@ -418,7 +419,7 @@ static void printTree(node *t, int lvl)
 }
 
 /* --------  ascii‑art visualization (like tree‑command)  ---------------*/
-static void visualize_ast(node *root,
+ void visualize_ast(node *root,
                           const char *prefix,
                           int is_left)
 {

@@ -10,6 +10,7 @@ int yywrap(void) { return 1; }
 %option yylineno
 
 %%
+
 bool                     { return BOOL; }
 char                     { return CHAR; }
 int                      { return INT; }
@@ -54,13 +55,13 @@ or                       { return OR;    }
 "&"                      { return ADDRESS;   }
 "|"                      { return LENGTH;    }
 
-";"                      { return SEMICOLON; }
-":"                      { return COLON;      }
-","                      { return COMMA;      }
-"("                      { return LPAREN;     }
-")"                      { return RPAREN;     }
-"["                      { return LBRACKET;   }
-"]"                      { return RBRACKET;   }
+";"                      { return ';'; }
+":"                      { return ':'; }
+","                      { return ','; }
+"("                      { return '('; }
+")"                      { return ')' ; }
+"["                      { return '[';}
+"]"                      { return ']';}
 
 "TRUE"                    { return TRUE;  }
 "FALSE"                    { return FALSE;  }
@@ -71,14 +72,19 @@ or                       { return OR;    }
 
 [+-]?[0-9]*\.[0-9]+([eE][+-]?[0-9]+)? | [+-]?[0-9]+[eE][+-]?[0-9]+{ yylval.realVal = atof(yytext); return REAL_LIT; }
 
-\'[\\]?[ -~]\'           { yylval.string = strdup(yytext); return CHAR_LIT; } 
+\'[\\]?[ -~]\'    { yylval.stringVal = strdup(yytext); return CHAR_LIT; }
 
-"\""[^"\n]*"\""          { yylval.string = strdup(yytext); return STRING_LIT; }
 
-[a-zA-Z][a-zA-Z0-9_]*    { yylval.string = strdup(yytext); return IDENT; }
+
+"\""[^"\n]*"\"" { yylval.stringVal = strdup(yytext); return STRING_LIT; }
+
+[a-zA-Z][a-zA-Z0-9_]* { yylval.stringVal = strdup(yytext); return IDENT; }
 
 #->([^<]|<[^-]|<-+[^#])*<-#    {}
 
-.                        { fprintf(stderr,"Unknown char %c \n", *yytext); return yytext[0]; }
+[ \t\n\r]+         { /* Skip whitespace */ }
+
+.                        { fprintf(stderr,"Unknown char %c \n", *yytext); return yytext[0]; }
+
 
 %%
