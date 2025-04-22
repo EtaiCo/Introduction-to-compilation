@@ -1137,7 +1137,7 @@ case 52:
 case 53:
 YY_RULE_SETUP
 #line 75 "part1_EL.l"
-{ yylval.stringVal = strdup(yytext); return CHAR_LIT; }
+{ yylval.charVal = yytext[1]; return CHAR_LIT; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP

@@ -1358,7 +1358,7 @@ yyreduce:
     {
   case 2: /* code: functions  */
 #line 66 "part1_EL.y"
-              { (yyval.nodePtr) = (yyvsp[0].nodePtr); printTree((yyval.nodePtr),0); }
+              {node *root = mknode("CODE", (yyvsp[0].nodePtr), NULL); printTree(root, 0);}
 #line 1363 "part1_EL.tab.c"
     break;
 
@@ -2214,30 +2214,35 @@ int main(void)
     return n;
 }
 
- void printTabs(int k){
-    for(int i=0; i<k; i++) 
+ void printTabs(int indent) {
+    for (int i = 0; i < indent; i++) {
         printf("  ");
+    }
 }
+
 
 void printTree(node *t, int indent) {
     if (!t) return;
 
-    // פותחים סוגריים והטוקן
-    printTabs(indent);
-    printf("(%s", t->token);
+    // 1. בחר שם תצוגה:
+    const char *tok = t->token;
+    if (strcmp(tok, "FUNCTION") == 0 || strcmp(tok, "PROC") == 0) tok = "FUNC";
+    else if (strcmp(tok, "RETURNS") == 0) tok = "RET";
+    else if (strcmp(tok, "RETURN") == 0) tok = "RETURN";
 
-    // ילדים (linked-list על ידי right)
-    if (t->left) {
+    // 2. הדפס את השורה הפותחת
+    printTabs(indent);
+    printf("(%s", tok);
+
+    // 3. הדפס רק את הילדים (linked via t->left / c->right)
+    for (node *c = t->left; c; c = c->right) {
         printf("\n");
-        for (node *c = t->left; c; c = c->right) {
-            printTree(c, indent+1);
-        }
-        // סוגרים בשורה נפרדת
-        printTabs(indent);
+        printTree(c, indent + 1);
     }
+
+    // 4. סגור סוגר )
     printf(")\n");
 }
-
 /* -------------------------  error handler -------------------------------*/
 int yyerror(const char *s)
 {

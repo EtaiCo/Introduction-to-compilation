@@ -72,7 +72,7 @@ or                       { return OR;    }
 
 [+-]?[0-9]*\.[0-9]+([eE][+-]?[0-9]+)? | [+-]?[0-9]+[eE][+-]?[0-9]+{ yylval.realVal = atof(yytext); return REAL_LIT; }
 
-\'[\\]?[ -~]\'    { yylval.stringVal = strdup(yytext); return CHAR_LIT; }
+\'[\\]?[ -~]\'    { yylval.charVal = yytext[1]; return CHAR_LIT; }
 
 
 
