@@ -1580,7 +1580,7 @@ yyreduce:
 
   case 36: /* statements: %empty  */
 #line 173 "part1_EL.y"
-     {(yyval.nodePtr) = mknode("empty_list", NULL,NULL);}
+     {(yyval.nodePtr) = mknode("", NULL,NULL);}
 #line 1585 "part1_EL.tab.c"
     break;
 
@@ -2224,23 +2224,19 @@ int main(void)
 void printTree(node *t, int indent) {
     if (!t) return;
 
-    // 1. בחר שם תצוגה:
     const char *tok = t->token;
     if (strcmp(tok, "FUNCTION") == 0 || strcmp(tok, "PROC") == 0) tok = "FUNC";
     else if (strcmp(tok, "RETURNS") == 0) tok = "RET";
     else if (strcmp(tok, "RETURN") == 0) tok = "RETURN";
 
-    // 2. הדפס את השורה הפותחת
     printTabs(indent);
     printf("(%s", tok);
 
-    // 3. הדפס רק את הילדים (linked via t->left / c->right)
     for (node *c = t->left; c; c = c->right) {
         printf("\n");
         printTree(c, indent + 1);
     }
 
-    // 4. סגור סוגר )
     printf(")\n");
 }
 /* -------------------------  error handler -------------------------------*/
