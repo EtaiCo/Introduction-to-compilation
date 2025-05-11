@@ -1,0 +1,12 @@
+def _main_():
+var
+    type int: x;
+    type real: y;
+begin
+    def foo(par1 int: x; par2 real: y): returns int
+    begin
+        return x;
+    end
+
+    call foo(3, 3.14);  
+end

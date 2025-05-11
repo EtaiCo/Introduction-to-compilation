@@ -1,0 +1,12 @@
+def _main_():
+var
+    type int: a;
+    type bool: b;
+begin
+    if a:
+        begin
+        end
+    elif b:
+        begin
+        end
+end

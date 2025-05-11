@@ -1,0 +1,42 @@
+def _main_():
+begin
+    call test();
+end
+
+def test():
+begin
+    variable
+        type int: x;
+    begin
+        x = 10;
+        
+        def inner_func():
+        begin
+            variable
+                type int: y;
+            begin
+                y = 20;
+                
+                def inner_func():
+                begin
+                    variable
+                        type int: z;
+                    begin
+                        z = 30;
+                    end
+                end
+            end
+        end
+        if x == 10:
+        begin
+            def inner_func():
+            begin
+                variable
+                    type int: a;
+                begin
+                    a = 40;
+                end
+            end
+        end
+    end
+end

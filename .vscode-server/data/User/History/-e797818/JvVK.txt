@@ -1,0 +1,29 @@
+/* ===================  Semantics Checks ================================*/
+/*int main_function_count = 0;
+
+void checkMainFunction(node* ast) {
+    if (!ast) return;
+
+    if (strcmp(ast->token, "FUNCTION") == 0 || strcmp(ast->token, "PROC") == 0) {
+        node* nameNode = ast->left;  
+        if (strcmp(nameNode->token, "_main_") == 0) {
+            main_function_count++;
+        }
+    }
+
+    checkMainFunction(ast->left);
+    checkMainFunction(ast->right);
+    if (main_function_count == 0) {
+        fprintf(stderr, "Semantic Error: missing function '_main_'\n");
+        exit(1);
+    }
+    if (main_function_count > 1) {
+        fprintf(stderr, "Semantic Error: multiple definitions of '_main_'\n");
+        exit(1);
+    }
+}
+*/
+
+
+// Semantic Rule 1: exactly one _main_ function
+    //checkMainFunction(ASTRoot);  // ASTRoot is the global root node

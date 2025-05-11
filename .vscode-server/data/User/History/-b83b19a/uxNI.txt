@@ -1,0 +1,11 @@
+def _main_():
+var
+    type int: x;
+begin
+    def add(par1 int: x; par2 int: y): returns int
+    begin
+        return x;
+    end
+
+    call add(2, 3);
+end

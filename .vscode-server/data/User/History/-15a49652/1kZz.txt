@@ -1,0 +1,13 @@
+def foo(): returns int
+begin
+    return 5;
+end
+
+def foo(): returns real
+begin
+    return 3.14;
+end
+
+def _main_():
+begin
+end

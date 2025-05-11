@@ -1,0 +1,10 @@
+def _main_():
+
+begin
+    def foo(par int: x; par real: y): returns int
+    begin
+        return x;
+    end
+
+    call foo("wrong", "alsoWrong");  
+end

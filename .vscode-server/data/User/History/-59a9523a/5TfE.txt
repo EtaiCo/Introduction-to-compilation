@@ -1,0 +1,7 @@
+def _main_():
+var
+    type string: s;
+    type int: i;
+begin
+    s[i];
+end

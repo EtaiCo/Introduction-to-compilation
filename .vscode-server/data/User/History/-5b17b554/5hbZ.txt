@@ -1,0 +1,9 @@
+def _main_():
+var
+    type int: condition;
+    type int: i;
+begin
+    for (i = 0; condition; i = i + 1):
+        begin
+        end
+end

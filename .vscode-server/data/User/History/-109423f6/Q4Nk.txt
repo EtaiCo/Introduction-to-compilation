@@ -1,0 +1,10 @@
+def _main_():
+begin
+    var
+    type int: y;
+    begin
+        var
+        type int: x;
+    end
+    x = 5; 
+end

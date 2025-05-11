@@ -1,0 +1,9 @@
+def _main_():
+var
+    type bool: b;
+begin
+    do:
+        begin
+        end
+    while b;
+end

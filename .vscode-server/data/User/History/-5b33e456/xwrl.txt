@@ -1,0 +1,7 @@
+def _main_():
+begin
+    do:
+        begin
+        end
+    while 0;
+end

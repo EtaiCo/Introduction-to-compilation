@@ -1,0 +1,10 @@
+else if (strcmp(declList->token, "ARRAY_DECL") == 0 || strcmp(declList->token, "ARRAY_INIT") == 0) {
+    node* idNode = declList->left;
+    if (idNode && strcmp(idNode->token, "IDENT") == 0 && idNode->left) {
+        char* varName = idNode->left->token;
+        if (insertSymbol(varName, VAR, typeStr, 0, "block")) {
+            yyerror("Semantic Error: Variable already declared in this scope.");
+            YYABORT;
+        }
+    }
+}

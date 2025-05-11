@@ -1,0 +1,9 @@
+def _main_():
+begin
+    def greet(): returns string
+    begin
+        return "Hello!";
+    end
+
+    call greet();
+end

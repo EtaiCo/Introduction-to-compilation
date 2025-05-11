@@ -1,0 +1,11 @@
+def foo(par1 int : x) : returns int
+    var 
+    begin
+        return x + 1;
+    end
+
+def _main_() :
+    var 
+    begin
+        call foo(5);
+    end

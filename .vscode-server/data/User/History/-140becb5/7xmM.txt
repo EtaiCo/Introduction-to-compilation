@@ -1,0 +1,12 @@
+def _main_():
+begin
+    var
+        type int : x;
+    begin
+        var
+            type int : x;  # OK: inner scope
+        begin
+            x = 5;
+        end
+    end
+end

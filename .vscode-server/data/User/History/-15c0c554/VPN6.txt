@@ -1,0 +1,48 @@
+def _main_():
+begin
+    /* This is allowed because it's in the global scope */
+    call test();
+end
+
+def test():
+begin
+    /* This is the first test function */
+    variable
+        type int: x;
+    begin
+        x = 10;
+        
+        /* This is allowed because it's in a different scope (nested within test) */
+        def inner_func():
+        begin
+            variable
+                type int: y;
+            begin
+                y = 20;
+                
+                /* This is allowed because it's in yet another nested scope */
+                def inner_func():
+                begin
+                    variable
+                        type int: z;
+                    begin
+                        z = 30;
+                    end
+                end
+            end
+        end
+        
+        /* This is allowed too - different block scope */
+        if x == 10:
+        begin
+            def inner_func():
+            begin
+                variable
+                    type int: a;
+                begin
+                    a = 40;
+                end
+            end
+        end
+    end
+end

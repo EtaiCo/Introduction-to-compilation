@@ -1,0 +1,8 @@
+def _main_():
+var
+    type bool: cond;
+begin
+    if cond:
+        begin
+        end
+end

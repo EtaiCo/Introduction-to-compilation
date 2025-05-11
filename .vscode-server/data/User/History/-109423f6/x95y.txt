@@ -1,0 +1,8 @@
+def _main_():
+begin
+    begin
+        var
+        type int: x;
+    end
+    x = 5;
+end

@@ -1,0 +1,9 @@
+def foo(): returns int
+begin
+    return 1;
+end
+
+def _main_():
+begin
+    call foo();
+end

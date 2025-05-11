@@ -1,0 +1,10 @@
+def foo(par1 int:x; par2 int:y): returns int
+begin
+    return x + y;
+end
+
+def _main_(): returns int
+begin
+    call foo(2, 3);
+    return 5;
+end

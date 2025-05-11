@@ -1,0 +1,4 @@
+def _main_(): returns int
+begin
+    return 5;
+end

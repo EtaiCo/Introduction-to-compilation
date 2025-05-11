@@ -1,0 +1,9 @@
+def _main_():
+begin
+    def foo(par1 int: x; par2 int: y): returns int
+    begin
+        return x;
+    end
+
+    call foo(3);  
+end

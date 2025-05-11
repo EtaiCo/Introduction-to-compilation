@@ -1,0 +1,16 @@
+def foo(): returns int
+begin
+    return 1;
+end
+
+def bar(): returns int
+begin
+    return 2;
+end
+
+def _main_():
+begin
+    call foo();
+    call bar();
+end
+

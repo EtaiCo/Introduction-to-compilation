@@ -1,0 +1,6 @@
+def _main_():
+begin
+    if 5:
+        begin
+        end
+end

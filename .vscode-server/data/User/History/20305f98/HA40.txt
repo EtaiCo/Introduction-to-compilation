@@ -1,0 +1,5 @@
+def _main_() : 
+    var 
+    begin
+        x = 5;
+    end

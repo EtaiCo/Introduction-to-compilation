@@ -1,0 +1,11 @@
+def _main_():
+var
+    type int: x;
+begin
+    def bad(par1 int: x): returns real
+    begin
+        return x;
+    end
+
+    call bad(2);
+end

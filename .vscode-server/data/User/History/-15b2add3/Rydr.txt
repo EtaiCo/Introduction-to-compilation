@@ -1,0 +1,13 @@
+def foo(): returns int
+begin
+    return 1;
+end
+
+def foo(): returns int
+begin
+    return 2;
+end
+
+def _main_():
+begin
+end

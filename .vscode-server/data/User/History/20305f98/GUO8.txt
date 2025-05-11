@@ -1,0 +1,4 @@
+def _main_(par1 int:x): returns int
+begin
+    return x;
+end

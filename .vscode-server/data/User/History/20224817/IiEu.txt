@@ -1,0 +1,4 @@
+def _main_():
+begin
+end
+
