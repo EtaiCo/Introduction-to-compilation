@@ -171,7 +171,7 @@ function :
         // Rule 9 check: return statements must match declared return type
         if (!validateReturnType($12, returnType)) 
         {
-            YYABORT;
+        YYABORT;
         }
 
         if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 

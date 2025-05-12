@@ -49,7 +49,7 @@
     void popScope();
     char* inferExprType(node* expr);
     int validateReturnType(node* body, const char* expectedType);
-    int isPointerType(const char* type);
+
 
     int mainDeclared = 0;
     int scopeDepth = 0;
@@ -171,7 +171,7 @@ function :
         // Rule 9 check: return statements must match declared return type
         if (!validateReturnType($12, returnType)) 
         {
-            YYABORT;
+        YYABORT;
         }
 
         if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 
@@ -375,9 +375,8 @@ assign_state
             YYABORT;
         }
 
-        char* lhsType = strdup(lvar->returnType); // normalize lhs type too
-        for (char* p = lhsType; *p; ++p) *p = tolower(*p);
-        char* rhsTypeA = inferExprType($3);
+        char* lhsType  = lvar->returnType;        /* declared type           */
+        char* rhsTypeA = inferExprType($3);       /* type of RHS expression  */
 
         if (strcmp(lhsType, rhsTypeA) != 0) {
             char msg[256];
@@ -421,27 +420,18 @@ assign_state
     }
 
     /* 14‑C  —  x = null ;   (LHS must be a pointer) */
-    | IDENT ASSIGN NULLL ';'
+  | IDENT ASSIGN NULLL ';'
     {
         Symbol* var = lookupSymbol($1);
-        if (!var) {
-    yyerror("Semantic Error: Variable used before declaration.");
-    YYABORT;
-    }
-
-    char* lhsType = strdup(var->returnType);
-    for (char* p = lhsType; *p; ++p) *p = tolower(*p);
-
-    if (!isPointerType(lhsType)) 
-    {
-        yyerror("Semantic Error: Only pointer variables can be assigned null.");
-        YYABORT;
-    }
+        if (!var || !(strstr(var->returnType, "ptr") || strstr(var->returnType, "*"))) {
+            yyerror("Semantic Error: Only pointer variables can be assigned null.");
+            YYABORT;
+        }
         $$ = mknode("null_assign",
                     mknode($1, NULL, NULL),
                     mknode("NULL", NULL, NULL));
     }
-    ;
+;
 
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
@@ -944,9 +934,4 @@ int validateReturnType(node* body, const char* expectedType) {
     if (!validateReturnType(body->right, expectedType)) return 0;
 
     return 1;
-}
-int isPointerType(const char* type) {
-    return strcmp(type, "intptr") == 0 ||
-           strcmp(type, "charptr") == 0 ||
-           strcmp(type, "realptr") == 0;
 }

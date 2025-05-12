@@ -51,6 +51,7 @@
     int validateReturnType(node* body, const char* expectedType);
     int isPointerType(const char* type);
 
+
     int mainDeclared = 0;
     int scopeDepth = 0;
 
@@ -171,7 +172,7 @@ function :
         // Rule 9 check: return statements must match declared return type
         if (!validateReturnType($12, returnType)) 
         {
-            YYABORT;
+        YYABORT;
         }
 
         if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 
@@ -424,24 +425,17 @@ assign_state
     | IDENT ASSIGN NULLL ';'
     {
         Symbol* var = lookupSymbol($1);
-        if (!var) {
-    yyerror("Semantic Error: Variable used before declaration.");
-    YYABORT;
-    }
+        if (!var || !isPointerType(lhsType)) 
+        {
+            yyerror("Semantic Error: Only pointer variables can be assigned null.");
+            YYABORT;
+        }
 
-    char* lhsType = strdup(var->returnType);
-    for (char* p = lhsType; *p; ++p) *p = tolower(*p);
-
-    if (!isPointerType(lhsType)) 
-    {
-        yyerror("Semantic Error: Only pointer variables can be assigned null.");
-        YYABORT;
-    }
         $$ = mknode("null_assign",
                     mknode($1, NULL, NULL),
                     mknode("NULL", NULL, NULL));
     }
-    ;
+;
 
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/

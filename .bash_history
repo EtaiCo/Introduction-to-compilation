@@ -172,3 +172,138 @@ while (temp && index < f->paramCount) {
     temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
     index++;
 }
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+bison -d part1_EL.y
+bison -d part1_EL.y
+bison -d part1_EL.y
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+./compiler<rule8נ.txt
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8a.txt
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule8b.txt
+./compiler<rule8a.txt
+./compiler<rule9a.txt
+./compiler<rule9b.txt
+./compiler<rule9c.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule9c.txt
+./compiler<rule9b.txt
+./compiler<rule9a.txt
+./compiler<rule10a.txt
+./compiler<rule10b.txt
+./compiler<rule10c.txt
+./compiler<rule10c.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule11a.txt
+./compiler<rule11b.txt
+./compiler<rule11c.txt
+./compiler<rule11d.txt
+./compiler<rule11e.txt
+./compiler<rule11f.txt
+./compiler<rule11f.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule12a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule12a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule12a.txt
+./compiler<rule12b.txt
+./compiler<rule13a.txt
+./compiler<rule13b.txt
+git add .
+git push
+git checkout main
+git commit -m "update part2 rules 1-13"
+git push
+git checkout main
+git stash --include-untracked
+git checkout main
+git fetch
+git pull
+git merge part2
+git push
+./compiler<rule13a.txt
+./compiler<rule13b.txt

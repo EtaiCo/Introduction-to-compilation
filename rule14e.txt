@@ -1,0 +1,6 @@
+def _main_():
+var
+    type int*: p;
+begin
+    p = null;
+end

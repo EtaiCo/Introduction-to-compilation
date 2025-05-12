@@ -3,10 +3,10 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
-    #include <ctype.h> 
+    #include <ctype.h>
+
     #define MAX_PARAMS 10
 
-    
     int yylex();
     int yyerror(const char *s);
     extern int yylineno;  
@@ -49,7 +49,7 @@
     void popScope();
     char* inferExprType(node* expr);
     int validateReturnType(node* body, const char* expectedType);
-    int isPointerType(const char* type);
+
 
     int mainDeclared = 0;
     int scopeDepth = 0;
@@ -171,7 +171,7 @@ function :
         // Rule 9 check: return statements must match declared return type
         if (!validateReturnType($12, returnType)) 
         {
-            YYABORT;
+        YYABORT;
         }
 
         if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 
@@ -362,87 +362,90 @@ state :
 
         ;
 /* ------------------------- Assignment variants --------------------------*/
-assign_state
-    /* 14‑A  —  x = expr ;  (types must match) */
-  : IDENT ASSIGN expression ';'
-    {
-        Symbol* lvar = lookupSymbol($1);          /* LHS variable */
-        if (!lvar) {
-            char msg[128];
-            sprintf(msg,
-                    "Semantic Error: Variable '%s' used before declaration.", $1);
-            yyerror(msg);
-            YYABORT;
-        }
+assign_state :
+    /* x = expr; */
+   | IDENT '[' expression ']' ASSIGN expression ';' {
+    // Rule 14.1: Type check
+    Symbol* var = lookupSymbol($1);
+    char* lhsType = var ? var->returnType : "";
+    char* simple_rhsType = inferExprType($3);
 
-        char* lhsType = strdup(lvar->returnType); // normalize lhs type too
-        for (char* p = lhsType; *p; ++p) *p = tolower(*p);
-        char* rhsTypeA = inferExprType($3);
-
-        if (strcmp(lhsType, rhsTypeA) != 0) {
-            char msg[256];
-            sprintf(msg,
-                    "Semantic Error: Cannot assign type '%s' to variable '%s' of type '%s'.",
-                    rhsTypeA, $1, lhsType);
-            yyerror(msg);
-            YYABORT;
-        }
-
-        $$ = mknode("assign", mknode($1, NULL, NULL), $3);
+    if (strcmp(lhsType, simple_rhsType) != 0) {
+        char msg[256];
+        sprintf(msg, "Semantic Error: Cannot assign type '%s' to variable '%s' of type '%s'.",
+                simple_rhsType, $1, lhsType);
+        yyerror(msg);
+        YYABORT;
     }
 
-    /* 14‑B  —  s[i] = char‑literal or expression‑of‑type‑char */
-  | IDENT '[' expression ']' ASSIGN CHAR_LIT ';'
-    {
-        Symbol* var = lookupSymbol($1);
-        if (!var || strcasecmp(var->returnType, "string") != 0) {
-            yyerror("Semantic Error: Only string variables support indexing with [].");
-            YYABORT;
-        }
-        char buf[2] = { $6 , '\0'};
-        $$ = mknode("array_assign",
-                    mknode($1, $3, NULL),
-                    mknode("CHAR", mknode(buf,NULL,NULL), NULL));
+    $$ = mknode("assign", mknode($1, NULL, NULL), $3);
+
+    if (!var || strcmp(var->returnType, "string") != 0) {
+        yyerror("Semantic Error: Only string variables support indexing with [].");
+        YYABORT;
     }
 
-  | IDENT '[' expression ']' ASSIGN expression ';'
-    {
-        Symbol* var = lookupSymbol($1);
-        if (!var || strcasecmp(var->returnType, "string") != 0) {
-            yyerror("Semantic Error: Only string variables support indexing with [].");
-            YYABORT;
-        }
-        char* rhsTypeB = inferExprType($6);
-        if (strcmp(rhsTypeB, "char") != 0) {
-            yyerror("Semantic Error: String cells can only hold characters.");
-            YYABORT;
-        }
-        $$ = mknode("array_assign", mknode($1, $3, NULL), $6);
+    char* indexed_rhsType = inferExprType($6);
+    if (strcmp(indexed_rhsType, "char") != 0) {
+        yyerror("Semantic Error: String cells can only hold characters.");
+        YYABORT;
     }
 
-    /* 14‑C  —  x = null ;   (LHS must be a pointer) */
-    | IDENT ASSIGN NULLL ';'
-    {
-        Symbol* var = lookupSymbol($1);
-        if (!var) {
-    yyerror("Semantic Error: Variable used before declaration.");
-    YYABORT;
+    $$ = mknode("array_assign", mknode($1, $3, NULL), $6);
+}
+
+    /* arr[index] = 'c'; */
+    | IDENT '[' expression ']' ASSIGN CHAR_LIT ';' {
+    Symbol* var = lookupSymbol($1);
+    if (!var || strcmp(var->returnType, "string") != 0) {
+        yyerror("Semantic Error: Only string variables support indexing with [].");
+        YYABORT;
+    }
+    $$ = mknode("array_assign", mknode($1, $3, NULL), mknode("CHAR", NULL, NULL));
     }
 
-    char* lhsType = strdup(var->returnType);
-    for (char* p = lhsType; *p; ++p) *p = tolower(*p);
 
-    if (!isPointerType(lhsType)) 
-    {
+    /* *p = expr;  (dereferenced pointer) */
+    | MULTI IDENT ASSIGN expression ';' {
+          $$ = mknode("pointer_assign",
+                      mknode($2,NULL,NULL), $4); }
+
+    /* x = &y;  (reference assign) */
+    | IDENT ASSIGN ADDRESS IDENT ';' {
+          $$ = mknode("adder_assign",
+                      mknode($1,NULL,NULL),
+                      mknode($4,NULL,NULL)); }
+
+    /* x = null; */
+    | IDENT ASSIGN NULLL ';' {
+    Symbol* var = lookupSymbol($1);
+    if (!var || !(strstr(var->returnType, "ptr") || strstr(var->returnType, "*"))) {
         yyerror("Semantic Error: Only pointer variables can be assigned null.");
         YYABORT;
     }
-        $$ = mknode("null_assign",
-                    mknode($1, NULL, NULL),
-                    mknode("NULL", NULL, NULL));
-    }
-    ;
 
+    $$ = mknode("null_assign", mknode($1, NULL, NULL), mknode("NULL", NULL, NULL));
+    }
+
+
+    /* arr[i] = <int> */
+    | IDENT '[' expression ']' ASSIGN INT_LIT ';' {
+          char buf[32]; sprintf(buf,"%d",$6);
+          $$ = mknode("array_assign",
+                      mknode($1,$3,NULL),
+                      mknode(buf,NULL,NULL)); }
+
+    /* arr[i] = "str" */
+    | IDENT '[' expression ']' ASSIGN STRING_LIT ';' {
+          $$ = mknode("array_assign",
+                      mknode($1,$3,NULL),
+                      mknode($6,NULL,NULL)); }
+
+    /* arr[i] = expr */
+    | IDENT '[' expression ']' ASSIGN expression ';' {
+          $$ = mknode("array_assign",
+                      mknode($1,$3,NULL), $6); }
+    ;
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
 if_state :
@@ -726,6 +729,7 @@ int main(void)
 }
 
 
+
 /* ----------------------  AST helper functions ---------------------------*/
  node *mknode(char *token, node *left, node *right)
 {
@@ -944,9 +948,4 @@ int validateReturnType(node* body, const char* expectedType) {
     if (!validateReturnType(body->right, expectedType)) return 0;
 
     return 1;
-}
-int isPointerType(const char* type) {
-    return strcmp(type, "intptr") == 0 ||
-           strcmp(type, "charptr") == 0 ||
-           strcmp(type, "realptr") == 0;
 }

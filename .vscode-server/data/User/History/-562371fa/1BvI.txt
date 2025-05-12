@@ -1,0 +1,6 @@
+def _main_():
+var
+    type string: s;
+begin
+    s = 5;
+end

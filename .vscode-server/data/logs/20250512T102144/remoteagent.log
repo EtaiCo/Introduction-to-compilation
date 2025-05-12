@@ -1,0 +1,13 @@
+2025-05-12 10:21:44.801 [info] 
+
+
+
+
+2025-05-12 10:21:44.856 [info] Extension host agent started.
+2025-05-12 10:21:45.040 [info] [127.0.0.1][84f968ea][ManagementConnection] New connection established.
+2025-05-12 10:21:45.512 [info] [127.0.0.1][04403ef8][ExtensionHostConnection] New connection established.
+2025-05-12 10:21:45.547 [info] [127.0.0.1][04403ef8][ExtensionHostConnection] <480> Launched Extension Host Process.
+2025-05-12 10:21:45.585 [info] ComputeTargetPlatform: linux-x64
+2025-05-12 10:21:48.705 [info] ComputeTargetPlatform: linux-x64
+2025-05-12 19:59:28.960 [info] [127.0.0.1][84f968ea][ManagementConnection] The client has reconnected.
+2025-05-12 20:02:33.517 [info] [127.0.0.1][04403ef8][ExtensionHostConnection] The client has reconnected.
