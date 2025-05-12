@@ -11,6 +11,15 @@
     int yyerror(const char *s);
     extern int yylineno;  
     extern char* yytext; 
+    /* === helpers for type checking (added) === */
+    int  isInt   (const char* t);
+    int  isReal  (const char* t);
+    int  isBool  (const char* t);
+    int  isChar  (const char* t);
+    int  isStr   (const char* t);
+    int  isNumeric(const char* t);
+    int  samePtrType(const char* a,const char* b);
+    int paramOrderIdx = 0;   /* סופר את par האחרון שראינו */
 
     /* AST node */
     typedef struct node {
@@ -72,7 +81,8 @@
 
 %token BOOL CHAR INT REAL STRING TYPE
 %token INTPTR CHARPTR REALPTR  
-%token IF ELIF ELSE WHILE FOR DO VARIABLE PAR
+%token IF ELIF ELSE WHILE FOR DO VARIABLE
+%token <intVal> PAR
 %token RETURN RETURNS NULLL
 %token T_BEGIN END
 %token DEF CALL
@@ -89,14 +99,16 @@
 %left  MULTI DIV
 %right NOT
 %right ADDRESS
+%nonassoc LENGTH_ABS
 
-%type <nodePtr> code functions function params param_list
+%type <nodePtr> code functions function params param_list params_reset
 %type <nodePtr> param var dec_list dec type literal  idents 
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp condition
 %type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression
+
 
 
 %%
@@ -241,9 +253,19 @@ function :
 
 
 /* --------------------- param declarations ---------------------------*/
-params :                                 
-    { $$ = NULL; }
-    | param_list                      { $$ = $1;   }
+/* --------------------------------------------------
+   params_reset  – אפס את המונה לפני שמתחילים לספור
+---------------------------------------------------*/
+params_reset
+    : /* empty */           { paramOrderIdx = 0; }
+    ;
+
+/* -----------------------------------------------
+   params        – רשימת פרמטרים (או ריק)
+-----------------------------------------------*/
+params
+    : /* אין פרמטרים */     { $$ = NULL; }            /* def foo() … */
+    | params_reset param_list { $$ = $2; }             /* def foo(par1 …) */
     ;
 
 param_list :
@@ -251,9 +273,19 @@ param_list :
     | param ';' param_list        { $$ = mknode("PARAMS",$1,$3); }
     ;
 
-param : 
-            PAR type ':' IDENT {$$=mknode("PARAM",$2,mknode($4,NULL,NULL));}
-            ;
+param :
+        PAR type ':' IDENT
+        {
+            /* ---- בדיקת סדר par ---- */
+            if ($1 != paramOrderIdx + 1) {
+                yyerror("Semantic Error: parameters must be in sequential order (par1, par2, …).");
+                YYABORT;
+            }
+            paramOrderIdx = $1;
+
+            $$ = mknode("PARAM", $2, mknode($4, NULL, NULL));
+        }
+;
 
 
 /* -----------------------  type (atomic) ---------------------------------*/
@@ -660,12 +692,58 @@ expression :
 
     /* ---- unary ----*/
     | MINUS     expression          { $$ = mknode("unary-",$2,NULL); }
-    | ADDRESS expression          { $$ = mknode("&",$2,NULL); }
-    | MULTI      IDENT          { $$ = mknode("deref",mknode($2,NULL,NULL),NULL); }
-    | MULTI      expression          { $$ = mknode("unary*", $2,NULL); }
+    | ADDRESS expression
+    {
+        /* בדיקת חוק ה-& בזמן הבנייה */
+        char* baseType = inferExprType($2);
+
+        if (isInt(baseType))      { /* מותר – int -> intptr   */ }
+        else if (isReal(baseType)){ /* מותר – real -> realptr */ }
+        else if (isChar(baseType)){ /* מותר – char -> charptr */ }
+        else {
+            yyerror("Semantic Error: '&' operator allowed only on int, real, char or string[i].");
+            YYABORT;
+        }
+
+        /* אם הגענו לכאן – מותר, בנה את הצומת רגיל */
+        $$ = mknode("&", $2, NULL);
+    }    | NOT expression              { $$ = mknode("!", $2, NULL); }
+    /* --- *IDENT  ----------------------------------------*/
+    | MULTI IDENT
+    {
+        Symbol* v = lookupSymbol($2);
+        if (!v){
+            yyerror("Semantic Error: Variable used before declaration.");
+            YYABORT;
+        }
+        char* t = v->returnType;
+        for(char*p=t;*p;++p)*p=tolower(*p);
+
+        if (!isPointerType(t)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            YYABORT;
+        }
+        $$ = mknode("deref", mknode($2,NULL,NULL), NULL);
+    }
+
+    /* --- *expr  -----------------------------------------*/
+    | MULTI expression
+    {
+        char* t = inferExprType($2);
+
+        if (!isPointerType(t)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            YYABORT;
+        }
+        $$ = mknode("unary*", $2, NULL);
+    }
+
 
     /* ---- grouping ----*/
     | '(' expression ')'            { $$ = $2; }
+    | LENGTH expression LENGTH    %prec LENGTH_ABS
+                                  { $$ = mknode("|", $2, NULL); }
+
 
     /* ---- comparison ----*/
     | expression EQL expression      { $$ = mknode("==",$1,$3); }
@@ -712,6 +790,20 @@ expression :
 %%  /* ===================  C‑code section ================================*/
 
 #include "lex.yy.c"
+
+/* ---------- helpers for type checking (added) ---------- */
+int  isInt   (const char* t){ return strcasecmp(t,"int"  )==0; }
+int  isReal  (const char* t){ return strcasecmp(t,"real" )==0; }
+int  isBool  (const char* t){ return strcasecmp(t,"bool" )==0; }
+int  isChar  (const char* t){ return strcasecmp(t,"char" )==0; }
+int  isStr   (const char* t){ return strcasecmp(t,"string")==0; }
+
+int  isNumeric(const char* t){ return isInt(t)||isReal(t); }
+
+int  samePtrType(const char* a,const char* b){
+    /* שם-טיפוס מצביע אצלך הוא תמיד xxxptr */
+    return (isPointerType(a)&&isPointerType(b)&&strcasecmp(a,b)==0);
+}
 
 /* ----------------------------  main  ------------------------------------*/
 int main(void)
@@ -901,28 +993,112 @@ char* inferExprType(node* expr)
     }
 
     // Direct literal types based on AST node labels
-    if (strcmp(expr->token, "INT") == 0) return "int";
-    if (strcmp(expr->token, "REAL") == 0) return "real";
-    if (strcmp(expr->token, "CHAR") == 0) return "char";
-    if (strcmp(expr->token, "STRING") == 0) return "string";
-    if (strcmp(expr->token, "BOOL") == 0) return "bool";
-    if (strcmp(expr->token, "NULL") == 0) return "null";
+    if (strcmp(expr->token,"INT"   )==0) return "int";
+    if (strcmp(expr->token,"REAL"  )==0) return "real";
+    if (strcmp(expr->token,"CHAR"  )==0) return "char";
+    if (strcmp(expr->token,"STRING")==0) return "string";
+    if (strcmp(expr->token,"BOOL"  )==0) return "bool";
+    if (strcmp(expr->token,"NULL"  )==0) return "null";
 
-    // Detect from token string format (e.g., 3.14 or 42)
-    if (isdigit(expr->token[0])) {
-        if (strchr(expr->token, '.')) return "real";
+    Symbol* sym = lookupSymbol(expr->token);
+    if (sym && sym->type==VAR && sym->returnType){
+        char* norm=strdup(sym->returnType);
+        for(char*p=norm;*p;++p)*p=tolower(*p);
+        return norm;
+    }
+
+    /* ------------ אופרטורים בינאריים / יונריים ------------- */
+    char* lt = expr->left  ? inferExprType(expr->left ) : NULL;
+    char* rt = expr->right ? inferExprType(expr->right) : NULL;
+
+    /* + - * / */
+    if (strcmp(expr->token,"+")==0||
+        strcmp(expr->token,"-")==0||
+        strcmp(expr->token,"*")==0||
+        strcmp(expr->token,"/")==0){
+        if (!isNumeric(lt)||!isNumeric(rt)){
+            yyerror("Semantic Error: arithmetic operators require int/real.");
+            return "unknown";
+        }
+        return (isInt(lt)&&isInt(rt)) ? "int" : "real";
+    }
+
+    /* && || */
+    if (strcmp(expr->token,"and")==0||strcmp(expr->token,"or")==0){
+        if (!isBool(lt)||!isBool(rt)){
+            yyerror("Semantic Error: logical operators require bool.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* > < >= <= */
+    if (strcmp(expr->token,">")==0||strcmp(expr->token,"<")==0||
+        strcmp(expr->token,">=")==0||strcmp(expr->token,"<=")==0){
+        if (!isNumeric(lt)||!isNumeric(rt)){
+            yyerror("Semantic Error: comparison requires int/real.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* == != */
+    if (strcmp(expr->token,"==")==0||strcmp(expr->token,"!=")==0){
+        int ok =
+            (isInt(lt)&&isInt(rt))   ||
+            (isReal(lt)&&isReal(rt)) ||
+            (isBool(lt)&&isBool(rt)) ||
+            (isChar(lt)&&isChar(rt)) ||
+            samePtrType(lt,rt);
+        if (!ok){
+            yyerror("Semantic Error: illegal types for equality operator.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* |expr| */
+    if (strcmp(expr->token,"|")==0){
+        if (!isStr(lt)){
+            yyerror("Semantic Error: | | expects string.");
+            return "unknown";
+        }
         return "int";
     }
 
-    // Identifiers: lookup in symbol table
-    Symbol* sym = lookupSymbol(expr->token);
-    if (sym && sym->type == VAR && sym->returnType) 
-    {
-    char* norm = strdup(sym->returnType);
-    for (char* p = norm; *p; ++p) *p = tolower(*p);
-    return norm;
+    /* !expr */
+    if (strcmp(expr->token,"!")==0){
+        if (!isBool(lt)){
+            yyerror("Semantic Error: ! expects bool.");
+            return "unknown";
+        }
+        return "bool";
     }
-    printf("inferExprType: WARNING - could not determine type of token '%s'\n", expr->token);
+
+        /* &expr  — Address-of */
+    if (strcmp(expr->token,"&")==0){
+        char* opType = lt;   /* type of operand */
+
+        if (isInt(opType))      return "intptr";
+        if (isReal(opType))     return "realptr";
+        if (isChar(opType))     return "charptr";
+        yyerror("Semantic Error: '&' operator allowed only on int, real, char or string[i].");
+        return "unknown";
+    }
+     /* *expr  -----------------------------------------------------*/
+    if (strcmp(expr->token,"deref")==0 || strcmp(expr->token,"unary*")==0){
+        char* ptrT = inferExprType(expr->left ? expr->left : expr->right);
+        if (!isPointerType(ptrT)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            return "unknown";
+        }
+        if (strcasecmp(ptrT,"intptr" )==0) return "int";
+        if (strcasecmp(ptrT,"realptr")==0) return "real";
+        if (strcasecmp(ptrT,"charptr")==0) return "char";
+        return "unknown";   /* pointer אבל לטיפוס אחר – לא אמור לקרות */
+    }
+
+    printf("inferExprType: WARNING – unknown token %s\n",expr->token);
     return "unknown";
 }
 

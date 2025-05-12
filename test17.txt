@@ -1,0 +1,9 @@
+def _main_():
+var
+    type int*  : ip;
+    type int   : x;
+    type real  : r;
+begin
+    x = *ip;      
+    x = *x;       
+end

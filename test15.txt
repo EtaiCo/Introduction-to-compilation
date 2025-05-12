@@ -1,0 +1,8 @@
+def _main_():
+var
+    type int*  : ip;
+    type char* : cp;
+    type bool  : res;
+begin
+    res = (ip == cp);          # ← “illegal types for equality operator”
+end

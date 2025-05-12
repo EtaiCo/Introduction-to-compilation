@@ -1,0 +1,13 @@
+def _main_():
+var
+    type int    : a;
+    type string : s;
+    type real   : r;
+begin
+    a = 5;
+    r = 3.14;
+    &a;          
+    &s[2];       
+    &s;          
+    &r + 1;      
+end

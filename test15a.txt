@@ -1,0 +1,7 @@
+def _main_():
+var
+    type int    : num;
+    type string : txt;
+begin
+    num = num + txt;          # ← צריך להפיל “arithmetic operators require int/real”
+end

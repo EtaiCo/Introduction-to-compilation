@@ -100,7 +100,8 @@ extern int yydebug;
     ADDRESS = 301,                 /* ADDRESS  */
     LENGTH = 302,                  /* LENGTH  */
     TRUE = 303,                    /* TRUE  */
-    FALSE = 304                    /* FALSE  */
+    FALSE = 304,                   /* FALSE  */
+    LENGTH_ABS = 305               /* LENGTH_ABS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -109,7 +110,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 61 "part1_EL.y"
+#line 69 "part1_EL.y"
 
     int  intVal;
     float realVal;
@@ -117,7 +118,7 @@ union YYSTYPE
     char* stringVal;
     struct node* nodePtr;
 
-#line 121 "part1_EL.tab.h"
+#line 122 "part1_EL.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

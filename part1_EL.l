@@ -27,7 +27,7 @@ else                     { return ELSE; }
 while                    { return WHILE; }
 for                      { return FOR; }
 var                      { return VARIABLE; }
-par[0-9]+                { return PAR; }
+par[0-9]+                { yylval.intVal = atoi(yytext+3); return PAR; }
 
 return                   { return RETURN;}
 returns                  { return RETURNS;}
@@ -54,6 +54,8 @@ or                       { return OR;    }
 "/"                      { return DIV;       }
 "&"                      { return ADDRESS;   }
 "|"                      { return LENGTH;    }
+"!"                      { return NOT;       }
+
 
 ";"                      { return ';'; }
 ":"                      { return ':'; }
