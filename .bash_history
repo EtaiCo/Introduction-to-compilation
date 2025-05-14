@@ -307,3 +307,27 @@ git merge part2
 git push
 ./compiler<rule13a.txt
 ./compiler<rule13b.txt
+
+git stash --include-untracked
+git checkout comp2
+./compiler<test1.txt
+./compiler<first_run.txt
+git checkout compiler
+./compiler<first_run.txt
+chmod +x compiler
+./compiler<first_run.txt
+./compiler<test1.txt
+git checkout main
+git stash --include-untracked
+git checkout main
+clear
+./compiler<test1.txt
+./compiler<first_run.txt
+./compiler<rule7a.txt
+./compiler<rule7a.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule7a.txt
+./compiler<rule6a.txt
+./compiler<rule6a.txt
+./compiler<rule6b.txt
