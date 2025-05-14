@@ -1,8 +1,0 @@
-def goo(par1 int:i; par2 int:j; par3 int:k):  
-begin  
-    def fee(par1 real:m; par2 real:n; par3 real:x): returns bool  
-    begin  
-        return TRUE;  
-    end  
-    call fee(2,3.5,0.4);  
-end

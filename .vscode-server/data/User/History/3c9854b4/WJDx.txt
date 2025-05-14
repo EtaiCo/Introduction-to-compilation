@@ -1,0 +1,58 @@
+def foo_3(): returns int
+begin        
+    if 3 > 2:
+    var
+        type int:a:7;
+    begin
+        i = a + 6;
+    end
+
+    if a + b > 4 and (num*b <= sum or not m == n):
+    begin
+        j = 3;
+    end
+    else:
+    begin
+        k = 4;
+        while TRUE:
+        begin
+            l = 2;
+            k = l + j;
+        end
+    end
+
+    if (TRUE):
+    begin
+        i = 5;
+    end
+
+    if not FALSE:
+    begin
+        j = 3;
+    end
+    else:
+    begin
+        x = x - 1;
+    end
+
+    while FALSE:
+    begin
+        x = x + 1;
+    end
+
+    for (i = 0; i < 10 and a != sum; i = i + 2):
+    begin
+        a = a + i;
+    end
+
+    do:
+    var
+        type int:a:5;
+    begin
+        a = a + i;
+        i = i + 1;
+    end
+    while i <= 10;
+
+    return 0;     
+end

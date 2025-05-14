@@ -1,0 +1,51 @@
+2025-05-14 19:26:19.625 [info] Can't use the Electron fetcher in this environment.
+2025-05-14 19:26:19.625 [info] Using the Node fetch fetcher.
+2025-05-14 19:26:19.625 [info] Initializing Git extension service.
+2025-05-14 19:26:19.625 [info] Successfully activated the vscode.git extension.
+2025-05-14 19:26:19.625 [info] Enablement state of the vscode.git extension: true.
+2025-05-14 19:26:19.625 [info] Successfully registered Git commit message provider.
+2025-05-14 19:26:20.334 [info] Logged in as EtaiCohen
+2025-05-14 19:26:21.645 [info] Got Copilot token for EtaiCohen
+2025-05-14 19:26:22.000 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 19:26:22.000 [info] GitHub.vscode-pull-request-github extension is not yet activated.
+2025-05-14 19:26:22.021 [info] Registering default platform agent...
+2025-05-14 19:26:22.471 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 19:26:22.596 [info] Fetched model metadata in 940ms 069457f0-5fe4-4b4f-b273-a65fb90e78a5
+2025-05-14 19:26:22.727 [info] activationBlocker from 'languageModelAccess' took for 2429ms
+2025-05-14 19:42:07.496 [info] Fetched model metadata in 756ms c32b41ec-b381-40b0-b737-0ed40c1090ad
+2025-05-14 19:58:06.594 [info] Logged in as EtaiCohen
+2025-05-14 19:58:07.607 [info] Got Copilot token for EtaiCohen
+2025-05-14 19:58:07.914 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 19:58:08.048 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 19:58:08.372 [info] Fetched model metadata in 751ms 2252bdac-f56f-4bad-8222-e539581b7b7b
+2025-05-14 20:14:11.398 [info] Fetched model metadata in 733ms d31edb45-53cc-472c-a227-263b867438f0
+2025-05-14 20:30:15.892 [info] Logged in as EtaiCohen
+2025-05-14 20:30:16.953 [info] Got Copilot token for EtaiCohen
+2025-05-14 20:30:17.243 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 20:30:17.578 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 20:30:17.709 [info] Fetched model metadata in 751ms ebd8c3b1-0d97-4331-8327-3b3329e93e68
+2025-05-14 20:46:21.788 [info] Fetched model metadata in 737ms 7a750690-a19e-4948-bdfb-9b67cd75d77c
+2025-05-14 21:02:25.743 [info] Logged in as EtaiCohen
+2025-05-14 21:02:26.692 [info] Got Copilot token for EtaiCohen
+2025-05-14 21:02:26.993 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 21:02:27.127 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 21:02:27.457 [info] Fetched model metadata in 761ms cb25625a-9401-4a1d-9de7-403f8956b76f
+2025-05-14 21:34:33.885 [info] Logged in as EtaiCohen
+2025-05-14 21:34:34.918 [info] Got Copilot token for EtaiCohen
+2025-05-14 21:34:35.149 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 21:34:35.312 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 21:50:34.484 [info] Fetched model metadata in 760ms 882834fe-e315-4b65-8017-4255433f3fa6
+2025-05-14 22:06:34.895 [info] Logged in as EtaiCohen
+2025-05-14 22:06:35.940 [info] Got Copilot token for EtaiCohen
+2025-05-14 22:06:36.194 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 22:06:36.313 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 22:38:37.197 [info] Logged in as EtaiCohen
+2025-05-14 22:38:38.221 [info] Got Copilot token for EtaiCohen
+2025-05-14 22:38:38.526 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 22:38:38.643 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 22:38:39.024 [info] Fetched model metadata in 793ms 4716a16a-3055-4a55-ba0e-3ef154522edc
+2025-05-14 23:10:38.266 [info] Logged in as EtaiCohen
+2025-05-14 23:10:39.302 [info] Got Copilot token for EtaiCohen
+2025-05-14 23:10:39.565 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 23:10:39.673 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 23:26:38.330 [info] Fetched model metadata in 765ms 26df94a1-01c7-41d8-a386-4f5bae125cf1

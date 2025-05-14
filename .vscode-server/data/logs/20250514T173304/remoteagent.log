@@ -9,3 +9,5 @@
 2025-05-14 17:33:05.104 [info] [127.0.0.1][cdc5e356][ExtensionHostConnection] New connection established.
 2025-05-14 17:33:05.132 [info] [127.0.0.1][cdc5e356][ExtensionHostConnection] <492> Launched Extension Host Process.
 2025-05-14 17:33:06.397 [info] ComputeTargetPlatform: linux-x64
+2025-05-14 18:42:15.682 [info] [127.0.0.1][43e6df42][ManagementConnection] The client has disconnected gracefully, so the connection will be disposed.
+2025-05-14 18:42:16.001 [info] [127.0.0.1][cdc5e356][ExtensionHostConnection] <492> Extension Host Process exited with code: 0, signal: null.

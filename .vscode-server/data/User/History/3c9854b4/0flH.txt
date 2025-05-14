@@ -1,0 +1,9 @@
+def foo_3(): returns int
+var
+type int:a:7;
+begin
+if 3 > 2: 
+begin
+ i = a+6;
+end
+end

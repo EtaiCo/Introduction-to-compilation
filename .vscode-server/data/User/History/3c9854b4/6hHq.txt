@@ -1,0 +1,7 @@
+def foo():
+var
+type int:i:0;
+type bool:m:TRUE,ns:FALSE;
+type char:c:'a';
+begin
+end

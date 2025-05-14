@@ -1,0 +1,14 @@
+def foo_3(): returns int
+begin
+ if TRUE:
+ begin
+ return foo();
+ end
+ return 0;
+end
+def foo_4():
+var
+ type int:a;
+begin
+ a = 2;
+end

@@ -13,3 +13,13 @@
 2025-05-14 17:33:15.299 [info] Fetched model metadata in 2938ms b766b7ff-6bad-48d7-87ec-7616a1296d8e
 2025-05-14 17:33:15.430 [info] activationBlocker from 'languageModelAccess' took for 5507ms
 2025-05-14 17:48:38.734 [info] Fetched model metadata in 888ms f4fbd2cb-9dc3-41b7-994f-76f8dac84863
+2025-05-14 18:04:01.684 [info] Logged in as EtaiCohen
+2025-05-14 18:04:02.746 [info] Got Copilot token for EtaiCohen
+2025-05-14 18:04:03.091 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 18:04:03.353 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-14 18:04:03.624 [info] Fetched model metadata in 850ms 972d78f5-0101-429d-99dd-48af99657409
+2025-05-14 18:19:31.893 [info] Fetched model metadata in 820ms 3bf4f272-01bd-4f4d-af41-a8a2994db27a
+2025-05-14 18:35:00.152 [info] Logged in as EtaiCohen
+2025-05-14 18:35:03.236 [info] Got Copilot token for EtaiCohen
+2025-05-14 18:35:03.448 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-14 18:35:03.626 [info] BYOK: Copilot Chat known models list fetched successfully.

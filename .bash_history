@@ -1,12 +1,3 @@
-./compiler<rule3a.txt
-./compiler<rule3b.txt
-flex part1_EL.l
-bison -d part1_EL.y
-gcc -Wall part1_EL.tab.c -o compiler
-./compiler<rule3b.txt
-clear
-bison -d part1_EL.y
-gcc -Wall part1_EL.tab.c -o compiler
 ./compiler<rule3b.txt
 bison -d part1_EL.y
 gcc -Wall part1_EL.tab.c -o compiler
@@ -331,3 +322,179 @@ gcc -Wall part1_EL.tab.c -o compiler
 ./compiler<rule6a.txt
 ./compiler<rule6a.txt
 ./compiler<rule6b.txt
+git fetch
+git pull
+git checkout part1
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test1.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+git add .
+git commit -m
+git commit -m "part1"
+git push
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<first_run.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+git clone https://github.com/Lucasker98/compi-part1.git
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<rule1.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+flex part1_EL.l
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+bison -d part1_EL.y
+bison -d part1_EL.y
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+clear
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
+
+./compiler<test.txt
+./compiler<test.txt
+bison -d part1_EL.y
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+bison -d part1_EL.y
+gcc -Wall part1_EL.tab.c -o compiler
+./compiler<test.txt
+./compiler<test.txt
+./compiler<test.txt
