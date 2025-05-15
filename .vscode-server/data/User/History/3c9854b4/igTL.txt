@@ -1,0 +1,7 @@
+def foo_3(): returns int
+var
+type int:x;
+begin        
+  if TRUE:
+  return x;
+end

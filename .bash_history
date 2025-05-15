@@ -1,7 +1,3 @@
-./compiler<rule3b.txt
-bison -d part1_EL.y
-gcc -Wall part1_EL.tab.c -o compiler
-./compiler<rule3b.txt
 ./compiler<rule3a.txt
 ./compiler<rule3c.txt
 bison -d part1_EL.y
@@ -498,3 +494,7 @@ gcc -Wall part1_EL.tab.c -o compiler
 ./compiler<test.txt
 ./compiler<test.txt
 ./compiler<test.txt
+git add .
+git commit -"update part1 for defence"
+git commit -m "update part1 for defence"
+git push

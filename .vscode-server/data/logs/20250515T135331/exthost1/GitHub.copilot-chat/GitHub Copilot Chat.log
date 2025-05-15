@@ -1,0 +1,31 @@
+2025-05-15 13:53:36.236 [info] Can't use the Electron fetcher in this environment.
+2025-05-15 13:53:36.236 [info] Using the Node fetch fetcher.
+2025-05-15 13:53:36.236 [info] Initializing Git extension service.
+2025-05-15 13:53:36.236 [info] Successfully activated the vscode.git extension.
+2025-05-15 13:53:36.236 [info] Enablement state of the vscode.git extension: true.
+2025-05-15 13:53:36.236 [info] Successfully registered Git commit message provider.
+2025-05-15 13:53:38.369 [info] Logged in as EtaiCohen
+2025-05-15 13:53:39.724 [info] Got Copilot token for EtaiCohen
+2025-05-15 13:53:40.303 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-15 13:53:40.303 [info] GitHub.vscode-pull-request-github extension is not yet activated.
+2025-05-15 13:53:40.343 [info] Registering default platform agent...
+2025-05-15 13:53:41.098 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-15 13:53:41.127 [info] Fetched model metadata in 1386ms 2bcd7aca-f993-4e98-ac6d-0e223e7b5749
+2025-05-15 13:53:41.270 [info] activationBlocker from 'languageModelAccess' took for 3473ms
+2025-05-15 14:25:34.958 [info] Logged in as EtaiCohen
+2025-05-15 14:25:36.026 [info] Got Copilot token for EtaiCohen
+2025-05-15 14:25:36.252 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-15 14:25:36.390 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-15 14:58:06.346 [info] Logged in as EtaiCohen
+2025-05-15 14:58:07.339 [info] Got Copilot token for EtaiCohen
+2025-05-15 14:58:07.578 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-15 14:58:07.737 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-15 15:30:50.817 [info] Logged in as EtaiCohen
+2025-05-15 15:30:51.940 [info] Got Copilot token for EtaiCohen
+2025-05-15 15:30:52.155 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-15 15:30:52.304 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-15 16:03:32.006 [info] Logged in as EtaiCohen
+2025-05-15 16:03:33.064 [info] Got Copilot token for EtaiCohen
+2025-05-15 16:03:33.292 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-15 16:03:33.405 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-15 16:19:59.925 [info] Fetched model metadata in 778ms 07b3f803-fb48-4141-91ed-e9bb35c43988

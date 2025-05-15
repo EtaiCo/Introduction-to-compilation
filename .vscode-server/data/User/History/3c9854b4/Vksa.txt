@@ -1,0 +1,21 @@
+def foo(): returns int 
+begin
+var  
+type int:x; 
+type int*:y; 
+begin 
+x = 5; 
+y = &x; 
+x = 6; 
+end 
+var  
+type char*:x; 
+type string y[10]; 
+type char:z; 
+begin 
+y = "foobar"; 
+x = &y[5];          
+z = *(x - 5);       
+y = "barfoo";       
+end 
+end 

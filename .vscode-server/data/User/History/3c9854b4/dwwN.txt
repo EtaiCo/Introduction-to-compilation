@@ -1,6 +1,0 @@
-def foo(par1 int:i; par2 int:j; par3 int:k): returns int
-var
-type int:i:0;
-type bool:m:TRUE,ns:FALSE;
-begin
-end

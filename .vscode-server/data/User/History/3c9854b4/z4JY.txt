@@ -1,5 +1,4 @@
 def foo(): returns int 
-begin
 if 3 > 2:    #-> (3>2) also correct <-# 
 var  
 type int:a:7; 
