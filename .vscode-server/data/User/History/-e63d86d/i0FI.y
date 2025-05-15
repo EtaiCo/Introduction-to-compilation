@@ -19,8 +19,11 @@
     int  isStr   (const char* t);
     int  isNumeric(const char* t);
     int  samePtrType(const char* a,const char* b);
+    int checkReturn(node *st, const char *expected);
     int paramOrderIdx = 0;   
     int semanticErrSeen = 0;   /* =1 after the first semantic error */
+    int lastStmtIsReturn(node *st);
+    int checkReturn(node *st, const char *expected);
 
     /* AST node */
     typedef struct node {
@@ -196,10 +199,8 @@ function :
         }
 
         // Rule 9 check: return statements must match declared return type
-        if (!validateReturnType($12, returnType)) 
-        {
-            YYABORT;
-        }
+        if (!checkReturn($12, returnType) || !lastStmtIsReturn($12)) YYABORT;
+
 
         if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 
         {
@@ -605,9 +606,10 @@ condition :
     ;
 
 /* -----------------------------  Return  ---------------------------------*/
-rt_state :
-    RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
-    ;
+rt_state
+      : RETURN expression ';'        { $$ = mknode("return", $2 , NULL); }
+      | RETURN ';'                   { $$ = mknode("return", NULL, NULL); }
+
 
 /* --------------------  BEGIN … END compound‑statement -------------------*/
 bl_state :
@@ -1205,3 +1207,51 @@ int registerParams(node* plist) {
     return 0;  // success
 }
 
+int checkReturn(node *st, const char *expected)
+{
+    if (!st) return 1;
+
+    /* ---- examine this node --------------------------------*/
+    if (strcmp(st->token,"return")==0)
+    {
+        if (strcmp(expected,"void")==0)
+        {                       /* procedure */
+            if (st->left) {
+                yyerror("Semantic Error: procedure must not return a value.");
+                return 0;
+            }
+        }
+        else                    /* function */
+        {
+            if (!st->left){
+                yyerror("Semantic Error: function must return a value.");
+                return 0;
+            }
+            char *actual = inferExprType(st->left);
+            if (strcmp(actual, expected)!=0){
+                char msg[256];
+                sprintf(msg,
+                        "Semantic Error: Return type is '%s' but expected '%s'.",
+                        actual, expected);
+                yyerror(msg);
+                return 0;
+            }
+        }
+    }
+
+    /* ---- recurse ------------------------------------------*/
+    if (!checkReturn(st->left , expected)) return 0;
+    if (!checkReturn(st->right, expected)) return 0;
+    return 1;
+}
+
+/* lastStmtIsReturn – is the very last statement a RETURN ? */
+int lastStmtIsReturn(node *st)
+{
+    if (!st) return 0;
+    if (strcmp(st->token,"statements")==0)
+        return lastStmtIsReturn(st->right);   /* right-most stmt */
+    if (strcmp(st->token,"block")==0)
+        return lastStmtIsReturn(st->left);    /* block(left=stmts) */
+    return strcmp(st->token,"return")==0;
+}

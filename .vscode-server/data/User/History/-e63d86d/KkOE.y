@@ -20,7 +20,6 @@
     int  isNumeric(const char* t);
     int  samePtrType(const char* a,const char* b);
     int paramOrderIdx = 0;   
-    int semanticErrSeen = 0;   /* =1 after the first semantic error */
 
     /* AST node */
     typedef struct node {
@@ -382,7 +381,7 @@ dec :
                               strcmp(single->token,"ARRAY_INIT")==0))
                {
                 node* idNode = NULL;
-
+                
                 if (strcmp(single->token,"ARRAY_INIT")==0)
                         idNode = single->left->left;   /* IDENT is two hops down  */
                 else idNode = single->left;         /* IDENT is one hop down   */
@@ -817,8 +816,7 @@ expression :
     | TRUE               { $$ = mknode("BOOL", mknode("TRUE", NULL, NULL), NULL); }
     | FALSE              { $$ = mknode("BOOL", mknode("FALSE", NULL, NULL), NULL); }
     | LENGTH IDENT LENGTH  %prec LENGTH_ABS
-      { $$ = mknode("|", mknode($2,NULL,NULL), NULL); }
-
+                         { $$ = mknode("length", mknode($2,NULL,NULL), NULL); }
 
     /* ---- nested call ----*/
     | func_call                 { $$ = $1; }
@@ -896,7 +894,6 @@ int yyerror(const char *s)
 {
     fprintf(stderr,"Error: %s at line %d near '%s'\n",
             s, yylineno, yytext);
-            semanticErrSeen = 1;
     return 0;
 }
 
@@ -978,19 +975,13 @@ int moreThanOneMain(char* name) {
 }
 
 
-int isMainExists()
-{
-    if (semanticErrSeen)          
-        return 0;                 
-
+int isMainExists() {
     if (!mainDeclared) {
-        fprintf(stderr,
-                "Semantic Error: Missing '_main_' function.\n");
+        fprintf(stderr, "Semantic Error: Missing '_main_' function.\n");
         return 1;
     }
     return 0;
 }
-
 
 void pushScope() {
     scopeDepth++;

@@ -1,0 +1,19 @@
+def _main_():
+var
+type int:a,b,num,sum,j,k,l;
+type bool:m,n; 
+begin
+if a+b > 4 and (num*b <= sum or not m==n):  
+begin  
+    j = 3;  
+end  
+else:  
+begin  
+    k = 4;  
+    while TRUE:  
+    begin  
+        l = 2;  
+        k = l + j;  
+    end  
+end
+end

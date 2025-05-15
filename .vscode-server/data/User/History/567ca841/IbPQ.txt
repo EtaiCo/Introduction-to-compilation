@@ -1,0 +1,11 @@
+def _main_():
+begin
+def bad(): returns int
+begin
+    if TRUE:
+    begin
+        return 1;
+    end
+end
+end
+

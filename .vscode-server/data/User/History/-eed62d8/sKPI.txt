@@ -4,6 +4,5 @@ begin
     begin
         return x;
     end
-
     call foo(5, 3.14);
 end

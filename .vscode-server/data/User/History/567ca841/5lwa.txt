@@ -1,0 +1,20 @@
+def _main_():
+var
+type int:a,i,sum;
+type bool:m,n; 
+begin
+for (i=0; i<10 and a!=sum; i=i+2):  
+begin  
+    a = a + i;  
+end
+
+do:  
+var  
+    type int:a:5;  
+begin  
+    a = a + i;  
+    i= i + 1;  
+end  
+while i<=10;
+
+end

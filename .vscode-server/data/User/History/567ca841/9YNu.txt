@@ -1,0 +1,8 @@
+def _main_():
+begin
+    def foo(par1 int:i; par2 int:j; par3 int:k): returns int  
+    begin  
+        
+        return 0;  
+    end
+end

@@ -1,0 +1,7 @@
+def _main_():
+var
+type int:a,i,sum;
+type bool:m,n; 
+begin
+def foo() return 
+end

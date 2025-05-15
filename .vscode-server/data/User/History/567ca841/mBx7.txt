@@ -1,0 +1,12 @@
+def _main_():
+begin
+def maxPositive(par1 int:a; par2 int:b): returns int
+begin
+    if a > b:
+    begin                   # return is **inside** the IF
+        return a;
+    end
+    return b;               # last statement is still a return
+end
+end
+

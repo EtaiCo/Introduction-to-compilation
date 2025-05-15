@@ -605,9 +605,10 @@ condition :
     ;
 
 /* -----------------------------  Return  ---------------------------------*/
-rt_state :
-    RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
-    ;
+rt_state
+      : RETURN expression ';'        { $$ = mknode("return", $2 , NULL); }
+      | RETURN ';'                   { $$ = mknode("return", NULL, NULL); }
+
 
 /* --------------------  BEGIN … END compound‑statement -------------------*/
 bl_state :

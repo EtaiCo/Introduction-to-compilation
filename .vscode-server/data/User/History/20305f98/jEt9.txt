@@ -1,0 +1,5 @@
+def foo(par1 int:x; par2 int:y): returns int
+begin
+    return 10;
+end
+

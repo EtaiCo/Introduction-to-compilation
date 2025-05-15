@@ -1,4 +1,5 @@
 def _main_():
+
 begin
     def foo(par1 int: x; par2 real: y): returns int
     begin

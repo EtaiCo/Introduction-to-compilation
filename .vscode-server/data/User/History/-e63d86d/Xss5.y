@@ -20,7 +20,6 @@
     int  isNumeric(const char* t);
     int  samePtrType(const char* a,const char* b);
     int paramOrderIdx = 0;   
-    int semanticErrSeen = 0;   /* =1 after the first semantic error */
 
     /* AST node */
     typedef struct node {
@@ -147,6 +146,7 @@ function :
     DEF IDENT '(' params ')' ':' RETURNS type var scope_marker T_BEGIN statements END
 
     {
+        popScope();
         if (moreThanOneMain($2)) YYABORT;
 
         if (strcmp($2, "_main_") == 0) {
@@ -213,12 +213,11 @@ function :
         node* bodyN = mknode("BODY", $9, $12);  // $9 = var, $12 = statements
         node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
         $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
-        popScope();
-
     }
 
   | DEF IDENT '(' params ')' ':' var scope_marker T_BEGIN statements END
     {
+        popScope();
         if (moreThanOneMain($2)) YYABORT;
 
         if (strcmp($2, "_main_") == 0) {
@@ -263,8 +262,6 @@ function :
         node* paramsN = mknode("PARAMS", $4, NULL);
         node* bodyN = mknode("BODY", $7, $10);  // $7 = var, $10 = statements
         $$ = mknode("PROC", idN, mknode("PROC_IN", paramsN, bodyN));
-        popScope();
-
     }
 ;
 
@@ -381,12 +378,7 @@ dec :
                               strcmp(single->token,"ARRAY_DECL")==0 ||
                               strcmp(single->token,"ARRAY_INIT")==0))
                {
-                node* idNode = NULL;
-
-                if (strcmp(single->token,"ARRAY_INIT")==0)
-                        idNode = single->left->left;   /* IDENT is two hops down  */
-                else idNode = single->left;         /* IDENT is one hop down   */
-
+                   node* idNode = single->left;
                    if (idNode && strcmp(idNode->token,"IDENT")==0 && idNode->left) {
                        char* vname = idNode->left->token;
                        if (insertSymbol(vname, VAR, $2->token, 0, "block", NULL)) {
@@ -817,8 +809,7 @@ expression :
     | TRUE               { $$ = mknode("BOOL", mknode("TRUE", NULL, NULL), NULL); }
     | FALSE              { $$ = mknode("BOOL", mknode("FALSE", NULL, NULL), NULL); }
     | LENGTH IDENT LENGTH  %prec LENGTH_ABS
-      { $$ = mknode("|", mknode($2,NULL,NULL), NULL); }
-
+                         { $$ = mknode("length", mknode($2,NULL,NULL), NULL); }
 
     /* ---- nested call ----*/
     | func_call                 { $$ = $1; }
@@ -896,7 +887,6 @@ int yyerror(const char *s)
 {
     fprintf(stderr,"Error: %s at line %d near '%s'\n",
             s, yylineno, yytext);
-            semanticErrSeen = 1;
     return 0;
 }
 
@@ -978,41 +968,30 @@ int moreThanOneMain(char* name) {
 }
 
 
-int isMainExists()
-{
-    if (semanticErrSeen)          
-        return 0;                 
-
+int isMainExists() {
     if (!mainDeclared) {
-        fprintf(stderr,
-                "Semantic Error: Missing '_main_' function.\n");
+        fprintf(stderr, "Semantic Error: Missing '_main_' function.\n");
         return 1;
     }
     return 0;
 }
 
-
 void pushScope() {
     scopeDepth++;
 }
 
-/* ------------  popScope --------------- */
-void popScope()
-{
-    Symbol **current = &symbolTable;
-    while (*current) 
-    {
-        Symbol *s = *current;
-
-        /* remove only VAR symbols belonging to the scope being popped */
-       if (s->scopeDepth == scopeDepth && s->type == VAR) {
-            *current = s->next;
-            free(s->name);
-            if (s->returnType) free(s->returnType);
-            free(s);
-            continue;                 /* stay at same *current */
+void popScope() {
+    Symbol** current = &symbolTable;
+    while (*current != NULL) {
+        if ((*current)->scopeDepth == scopeDepth) {
+            Symbol* toDelete = *current;
+            *current = (*current)->next;
+            free(toDelete->name);
+            if (toDelete->returnType) free(toDelete->returnType);
+            free(toDelete);
+        } else {
+            current = &((*current)->next);
         }
-        current = &s->next;
     }
     scopeDepth--;
 }
@@ -1155,33 +1134,25 @@ char* inferExprType(node* expr)
     return "unknown";
 }
 
-int validateReturnType(node *body, const char *expectedType)
-{
+int validateReturnType(node* body, const char* expectedType) {
     if (!body) return 1;
 
-    if (strcmp(body->token, "FUNCTION") == 0 ||
-        strcmp(body->token, "PROC")     == 0) {
-        return 1;   /* do NOT look inside – it will be validated later */
-    }
-
     if (strcmp(body->token, "return") == 0) {
-        char *actualType = inferExprType(body->left);
+        char* actualType = inferExprType(body->left);
         if (strcmp(actualType, expectedType) != 0) {
             char msg[256];
-            sprintf(msg,
-                "Semantic Error: Return type is '%s' but expected '%s'.",
-                actualType, expectedType);
+            sprintf(msg, "Semantic Error: Return type is '%s' but expected '%s'.", actualType, expectedType);
             yyerror(msg);
             return 0;
         }
     }
 
-    if (!validateReturnType(body->left , expectedType)) return 0;
+    // Recurse through the AST
+    if (!validateReturnType(body->left, expectedType)) return 0;
     if (!validateReturnType(body->right, expectedType)) return 0;
 
     return 1;
 }
-
 int isPointerType(const char* type) {
     return strcmp(type, "intptr") == 0 ||
            strcmp(type, "charptr") == 0 ||

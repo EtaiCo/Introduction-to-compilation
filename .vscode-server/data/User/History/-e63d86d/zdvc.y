@@ -896,7 +896,6 @@ int yyerror(const char *s)
 {
     fprintf(stderr,"Error: %s at line %d near '%s'\n",
             s, yylineno, yytext);
-            semanticErrSeen = 1;
     return 0;
 }
 
@@ -978,19 +977,13 @@ int moreThanOneMain(char* name) {
 }
 
 
-int isMainExists()
-{
-    if (semanticErrSeen)          
-        return 0;                 
-
+int isMainExists() {
     if (!mainDeclared) {
-        fprintf(stderr,
-                "Semantic Error: Missing '_main_' function.\n");
+        fprintf(stderr, "Semantic Error: Missing '_main_' function.\n");
         return 1;
     }
     return 0;
 }
-
 
 void pushScope() {
     scopeDepth++;

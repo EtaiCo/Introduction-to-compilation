@@ -1,0 +1,19 @@
+def _main_():
+begin
+    def greet(): returns bool
+    begin
+    var
+    type bool: condition;
+    type int: i;
+    begin
+    for (i = 0; condition; i = i + 1):
+        begin
+            return TRUE;
+        end
+    end
+
+    end
+
+    call greet();
+end
+

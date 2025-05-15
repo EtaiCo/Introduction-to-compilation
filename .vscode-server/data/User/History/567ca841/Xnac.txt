@@ -1,0 +1,10 @@
+def _main_():
+begin
+    def greet(): returns bool
+    begin
+        return TRUE;
+    end
+
+    call greet();
+end
+
