@@ -1,0 +1,15 @@
+def qux():
+begin
+    do:
+        begin
+            return 1;
+        end
+    while TRUE;
+end
+
+def _main_():
+var
+    type int: x;
+begin
+    x = 5;
+end

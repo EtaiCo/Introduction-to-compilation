@@ -61,6 +61,7 @@
     int validateReturnType(node* body, const char* expectedType);
     int isPointerType(const char* type);
     int registerParams(node* plist);
+    int containsReturn(node* body);  
 
     int mainDeclared = 0;
     int scopeDepth = 0;
@@ -103,13 +104,18 @@
 %right NOT
 %right ADDRESS
 %nonassoc LENGTH_ABS
+%nonassoc UMINUS
+%nonassoc DEREF
+%nonassoc  ELSELESS     
+%nonassoc  ELSE
+
 
 %type <nodePtr> code functions function params param_list params_reset
 %type <nodePtr> param var dec_list dec type literal
 %type <nodePtr> ident_entry idents_list
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
-%type <nodePtr> for_state for_h advance_exp condition
+%type <nodePtr> for_state for_h advance_exp 
 %type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression 
 
@@ -132,7 +138,7 @@ functions :
 
 /* ------------------------ Single function rule -------------------------*/
 scope_marker
-    : {                                          /* begin action */
+    : %empty {                                          /* begin action */
           pushScope();
 
           /* ---------- register the parameters ---------- */
@@ -258,7 +264,11 @@ function :
             yyerror("Semantic Error: Function already declared in the same scope.");
             YYABORT;
         }
-
+    
+        if (containsReturn($10)) {
+            yyerror("Semantic Error: Procedure must not contain return statements.");
+            YYABORT;
+        }
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
         node* bodyN = mknode("BODY", $7, $10);  // $7 = var, $10 = statements
@@ -272,7 +282,7 @@ function :
 /* --------------------- param declarations ---------------------------*/
 
 params_reset
-    : /* empty */           { paramOrderIdx = 0; }
+    : /* empty */   %empty        { paramOrderIdx = 0; }
     ;
 
 params
@@ -357,7 +367,7 @@ literal :
         ;
 
 /* -------------------  Local‑var block  ----------------------------------*/
-var :                                     
+var :         %empty                             
     { $$ = NULL; }
     | VARIABLE dec_list                { $$ = mknode("VAR",$2,NULL); }
     ;
@@ -402,7 +412,7 @@ dec :
 
 
 /* ------------------------- Statements seq. ------------------------------*/
-statements :
+statements : %empty
      {$$ = mknode("", NULL,NULL);}
             | state {$$ = $1;}
             | state statements {$$ = mknode("statements", $1, $2);}
@@ -508,7 +518,7 @@ assign_state
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
 if_state :
-    IF expression ':' bl_state
+    IF expression ':' bl_state  %prec ELSELESS
     {
         if (strcmp(inferExprType($2), "bool") != 0) {
             yyerror("Semantic Error: IF condition must be of type 'bool'.");
@@ -595,14 +605,6 @@ advance_exp :
                       mknode($1,NULL,NULL),$3); }
     ;
 
-/* -----------------------  Boolean condition helper ----------------------*/
-condition :
-     expression                                   { $$ = $1; }
-    | NOT condition                                { $$ = mknode("not",$2,NULL); }
-    | '(' condition ')'                            { $$ = $2; }
-    | TRUE                                         { $$ = mknode("true",NULL,NULL); }
-    | FALSE                                        { $$ = mknode("false",NULL,NULL); }
-    ;
 
 /* -----------------------------  Return  ---------------------------------*/
 rt_state :
@@ -691,7 +693,7 @@ exp_list :
 /* ---------------------------  Expressions  ------------------------------*/
 expression :
     /* ---- primary ----*/
-    | INT_LIT {
+     INT_LIT {
     $$ = mknode(strdup("INT"), NULL, NULL);
     }
     | REAL_LIT {
@@ -721,7 +723,7 @@ expression :
     | expression DIV    expression  { $$ = mknode("/",$1,$3); }
 
     /* ---- unary ----*/
-    | MINUS     expression          { $$ = mknode("unary-",$2,NULL); }
+    | MINUS     expression  %prec UMINUS { $$ = mknode("unary-",$2,NULL); }
     | ADDRESS expression
     {
         /* בדיקת חוק ה-& בזמן הבנייה */
@@ -739,7 +741,7 @@ expression :
         $$ = mknode("&", $2, NULL);
     }    | NOT expression              { $$ = mknode("not", $2, NULL); }
     /* --- *IDENT  ----------------------------------------*/
-    | MULTI IDENT
+    | MULTI IDENT  %prec DEREF
     {
         Symbol* v = lookupSymbol($2);
         if (!v){
@@ -757,7 +759,7 @@ expression :
     }
 
     /* --- *expr  -----------------------------------------*/
-    | MULTI expression
+    | MULTI expression %prec DEREF
     {
         char* t = inferExprType($2);
 
@@ -1205,3 +1207,20 @@ int registerParams(node* plist) {
     return 0;  // success
 }
 
+int containsReturn(node *body)
+{
+    if (!body) return 0;
+
+    /* אל תרד לפונקציות/פרוצדורות מקוננות – בהן return חוקי */
+    if (strcmp(body->token,"FUNCTION")==0 || strcmp(body->token,"PROC")==0)
+        return 0;
+
+    if (strcmp(body->token,"return")==0)
+        return 1;                      /* נמצא return → שגיאה */
+
+    /* רד רקורסתית על תת-העצים */
+    if (containsReturn(body->left )) return 1;
+    if (containsReturn(body->right)) return 1;
+
+    return 0;
+}
