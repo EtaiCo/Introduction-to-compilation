@@ -1,0 +1,21 @@
+2025-05-16 17:18:44.441 [info] 
+
+
+
+
+2025-05-16 17:18:44.455 [info] Extension host agent started.
+2025-05-16 17:18:44.824 [info] [127.0.0.1][62a2ca74][ManagementConnection] New connection established.
+2025-05-16 17:18:45.142 [info] ComputeTargetPlatform: linux-x64
+2025-05-16 17:18:45.326 [info] [127.0.0.1][779a08c4][ExtensionHostConnection] New connection established.
+2025-05-16 17:18:45.333 [info] [127.0.0.1][779a08c4][ExtensionHostConnection] <542> Launched Extension Host Process.
+2025-05-16 17:18:47.755 [info] ComputeTargetPlatform: linux-x64
+2025-05-16 17:18:48.859 [info] Getting Manifest... github.copilot
+2025-05-16 17:18:48.977 [info] Installing extension: github.copilot {"productVersion":{"version":"1.100.2","date":"2025-05-14T21:47:40.416Z"},"pinned":false,"operation":3,"isApplicationScoped":false,"donotVerifySignature":false,"context":{"clientTargetPlatform":"win32-x64"},"profileLocation":{"$mid":1,"fsPath":"/home/etaico/.vscode-server/extensions/extensions.json","external":"file:///home/etaico/.vscode-server/extensions/extensions.json","path":"/home/etaico/.vscode-server/extensions/extensions.json","scheme":"file"}}
+2025-05-16 17:18:49.915 [info] Getting Manifest... github.copilot-chat
+2025-05-16 17:18:52.151 [info] Extension signature verification result for github.copilot: Success. Internal Code: 0. Executed: true. Duration: 1402ms.
+2025-05-16 17:18:53.134 [info] Extracted extension to file:///home/etaico/.vscode-server/extensions/github.copilot-1.322.0: github.copilot
+2025-05-16 17:18:53.158 [info] Renamed to /home/etaico/.vscode-server/extensions/github.copilot-1.322.0
+2025-05-16 17:18:53.184 [info] Marked extension as removed github.copilot-1.317.0
+2025-05-16 17:18:53.191 [info] Extension installed successfully: github.copilot file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-05-16 17:27:45.662 [info] [127.0.0.1][62a2ca74][ManagementConnection] The client has disconnected gracefully, so the connection will be disposed.
+2025-05-16 17:27:45.797 [info] [127.0.0.1][779a08c4][ExtensionHostConnection] <542> Extension Host Process exited with code: 0, signal: null.

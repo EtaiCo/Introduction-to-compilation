@@ -1,0 +1,15 @@
+
+
+def foo(): returns int 
+begin 
+    return 0; 
+end 
+
+def _main_():   
+var 
+   type int:a; 
+begin 
+    a = call foo(); 
+end
+
+

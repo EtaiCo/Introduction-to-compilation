@@ -1,0 +1,9 @@
+def _main_():
+var
+    type int  : a;
+    type int  : b;
+    type int  : c;
+    type bool : res;
+begin
+    res = ((a < b) and c);  
+end

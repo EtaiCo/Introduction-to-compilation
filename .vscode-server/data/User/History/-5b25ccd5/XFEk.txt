@@ -1,0 +1,9 @@
+def _main_():
+var
+    type bool: condition;
+    type int: i;
+begin
+    for (i = 0; 5; i = i + 1):
+        begin
+        end
+end

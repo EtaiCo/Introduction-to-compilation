@@ -1,0 +1,45 @@
+2025-05-17 21:38:57.192 [info] Can't use the Electron fetcher in this environment.
+2025-05-17 21:38:57.192 [info] Using the Node fetch fetcher.
+2025-05-17 21:38:57.192 [info] Initializing Git extension service.
+2025-05-17 21:38:57.192 [info] Successfully activated the vscode.git extension.
+2025-05-17 21:38:57.192 [info] Enablement state of the vscode.git extension: true.
+2025-05-17 21:38:57.192 [info] Successfully registered Git commit message provider.
+2025-05-17 21:38:58.422 [info] Logged in as EtaiCohen
+2025-05-17 21:39:00.393 [info] Got Copilot token for EtaiCohen
+2025-05-17 21:39:00.726 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-17 21:39:00.726 [info] GitHub.vscode-pull-request-github extension is not yet activated.
+2025-05-17 21:39:00.744 [info] Registering default platform agent...
+2025-05-17 21:39:01.125 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-17 21:39:01.237 [info] Fetched model metadata in 834ms 9e2967b2-0896-4f79-8320-2135c330556e
+2025-05-17 21:39:02.717 [info] activationBlocker from 'languageModelAccess' took for 4567ms
+2025-05-17 21:54:04.380 [info] Fetched model metadata in 763ms 0d570494-4b8c-47ed-8b69-1878cca3e297
+2025-05-17 22:09:04.675 [info] Logged in as EtaiCohen
+2025-05-17 22:09:05.758 [info] Got Copilot token for EtaiCohen
+2025-05-17 22:09:06.095 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-17 22:09:06.233 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-17 22:09:06.596 [info] Fetched model metadata in 816ms 750fed1b-57a6-4c76-8aa4-317cf2e8a5fd
+2025-05-17 22:24:07.618 [info] Fetched model metadata in 751ms 1c6718ec-82e6-4a4e-9883-8c3bcf6e077a
+2025-05-17 22:39:07.859 [info] Logged in as EtaiCohen
+2025-05-17 22:39:08.942 [info] Got Copilot token for EtaiCohen
+2025-05-17 22:39:09.257 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-17 22:39:09.385 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-17 22:39:09.735 [info] Fetched model metadata in 782ms a448529f-e366-43a3-ae24-8242ac485fe0
+2025-05-17 22:54:10.782 [info] Fetched model metadata in 785ms e73e151b-841d-481b-89de-0be41b49195d
+2025-05-17 23:09:11.066 [info] Logged in as EtaiCohen
+2025-05-17 23:09:12.153 [info] Got Copilot token for EtaiCohen
+2025-05-17 23:09:12.444 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-17 23:09:12.597 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-17 23:39:12.996 [info] Logged in as EtaiCohen
+2025-05-17 23:39:14.081 [info] Got Copilot token for EtaiCohen
+2025-05-17 23:39:14.297 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-17 23:39:14.415 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-17 23:54:15.382 [info] Fetched model metadata in 804ms 52cf14c2-b1cf-4135-afdb-7446f38b8eb0
+2025-05-18 00:09:15.678 [info] Logged in as EtaiCohen
+2025-05-18 00:09:16.685 [info] Got Copilot token for EtaiCohen
+2025-05-18 00:09:16.920 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-18 00:09:17.077 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-18 00:39:17.459 [info] Logged in as EtaiCohen
+2025-05-18 00:39:18.616 [info] Got Copilot token for EtaiCohen
+2025-05-18 00:39:18.958 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-18 00:39:19.081 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-18 00:39:19.513 [info] Fetched model metadata in 871ms c44ab461-0719-45b1-bde3-fb7b5882da38

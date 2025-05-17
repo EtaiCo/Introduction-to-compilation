@@ -1,0 +1,11 @@
+def _main_():
+var
+    type bool: cond;
+begin
+    def foo(): returns int
+    begin
+    if cond:
+        begin
+        return 0;
+        end
+end

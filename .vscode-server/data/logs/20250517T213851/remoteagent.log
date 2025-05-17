@@ -1,0 +1,20 @@
+2025-05-17 21:38:51.819 [info] 
+
+
+
+
+2025-05-17 21:38:51.841 [info] Extension host agent started.
+2025-05-17 21:38:52.005 [info] Deleted marked for removal extension from disk github.copilot /home/etaico/.vscode-server/extensions/github.copilot-1.317.0
+2025-05-17 21:38:52.046 [info] [127.0.0.1][ea32f4da][ManagementConnection] New connection established.
+2025-05-17 21:38:52.178 [info] ComputeTargetPlatform: linux-x64
+2025-05-17 21:38:52.547 [info] [127.0.0.1][06d0898b][ExtensionHostConnection] New connection established.
+2025-05-17 21:38:52.569 [info] [127.0.0.1][06d0898b][ExtensionHostConnection] <463> Launched Extension Host Process.
+2025-05-17 21:38:54.900 [info] ComputeTargetPlatform: linux-x64
+2025-05-17 21:38:55.929 [info] Getting Manifest... github.copilot-chat
+2025-05-17 21:38:56.061 [info] Installing extension: github.copilot-chat {"productVersion":{"version":"1.100.2","date":"2025-05-14T21:47:40.416Z"},"pinned":false,"operation":3,"isApplicationScoped":false,"donotVerifySignature":false,"context":{"clientTargetPlatform":"win32-x64"},"profileLocation":{"$mid":1,"fsPath":"/home/etaico/.vscode-server/extensions/extensions.json","external":"file:///home/etaico/.vscode-server/extensions/extensions.json","path":"/home/etaico/.vscode-server/extensions/extensions.json","scheme":"file"}}
+2025-05-17 21:38:56.986 [info] Getting Manifest... github.copilot
+2025-05-17 21:38:59.145 [info] Extension signature verification result for github.copilot-chat: Success. Internal Code: 0. Executed: true. Duration: 1572ms.
+2025-05-17 21:38:59.536 [info] Extracted extension to file:///home/etaico/.vscode-server/extensions/github.copilot-chat-0.27.1: github.copilot-chat
+2025-05-17 21:38:59.547 [info] Renamed to /home/etaico/.vscode-server/extensions/github.copilot-chat-0.27.1
+2025-05-17 21:38:59.571 [info] Marked extension as removed github.copilot-chat-0.27.0
+2025-05-17 21:38:59.572 [info] Extension installed successfully: github.copilot-chat file:///home/etaico/.vscode-server/extensions/extensions.json

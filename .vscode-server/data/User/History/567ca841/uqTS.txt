@@ -1,0 +1,16 @@
+
+
+def foo_3(): returns int  
+begin 
+    if TRUE: 
+    begin 
+        return foo();  
+    end 
+    return 0;  
+end
+
+def _main_():   
+begin 
+end
+
+

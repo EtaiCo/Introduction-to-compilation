@@ -1,0 +1,15 @@
+
+
+def goo(): returns int 
+begin 
+    begin 
+        begin end 
+    end 
+    return 0; 
+end
+
+def _main_():   
+begin 
+end
+
+

@@ -1,0 +1,7 @@
+def _main_():
+var
+    type string : b;
+    type string  : res;
+begin
+    res = |b|;        
+end

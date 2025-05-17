@@ -1,0 +1,7 @@
+def _main_():
+var
+    type bool  : x;
+    type bool : res;
+begin
+    res = !x;          
+end
