@@ -3050,6 +3050,20 @@ char* inferExprType(node* expr)
         if (strcasecmp(ptrT,"charptr")==0) return "char";
         return "unknown";   
     }
+    // Function call inference
+    if (strcmp(expr->token, "call") == 0) {
+        if (!expr->left || !expr->left->token) {
+            return "unknown";
+        }
+        char* fname = expr->left->token;
+        Symbol* f = lookupSymbol(fname);
+        if (f && f->type == FUNC && f->returnType) {
+            char* lowered = strdup(f->returnType);
+            for (char* p = lowered; *p; ++p) *p = tolower(*p);
+            return lowered;
+        }
+        return "unknown";
+    }
 
     printf("inferExprType: WARNING – unknown token %s\n",expr->token);
     return "unknown";

@@ -43,3 +43,8 @@
 2025-05-18 00:39:18.958 [info] copilot token chat_enabled: true, sku: free_limited_copilot
 2025-05-18 00:39:19.081 [info] BYOK: Copilot Chat known models list fetched successfully.
 2025-05-18 00:39:19.513 [info] Fetched model metadata in 871ms c44ab461-0719-45b1-bde3-fb7b5882da38
+2025-05-18 01:09:20.006 [info] Logged in as EtaiCohen
+2025-05-18 01:09:21.066 [info] Got Copilot token for EtaiCohen
+2025-05-18 01:09:21.471 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-05-18 01:09:21.592 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-05-18 01:09:21.955 [info] Fetched model metadata in 867ms 2ec53e7c-0cd2-4166-9349-2dc8d6bc8c4c

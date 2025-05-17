@@ -1,6 +1,6 @@
-def foo(): returns int  
+def foo(): returns real  
 begin
-    return 5;
+    return 5.5;
 end
 
 def foo_3(): returns int  
