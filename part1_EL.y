@@ -303,7 +303,6 @@ param_list :
 param :
         PAR type ':' IDENT
         {
-            /* ---- בדיקת סדר par ---- */
             if ($1 != paramOrderIdx + 1) {
                 yyerror("Semantic Error: parameters must be in sequential order (par1, par2, …).");
                 YYABORT;
@@ -1036,13 +1035,12 @@ void popScope()
     {
         Symbol *s = *current;
 
-        /* remove only VAR symbols belonging to the scope being popped */
        if (s->scopeDepth == scopeDepth && s->type == VAR) {
             *current = s->next;
             free(s->name);
             if (s->returnType) free(s->returnType);
             free(s);
-            continue;                 /* stay at same *current */
+            continue;                 
         }
         current = &s->next;
     }
@@ -1269,7 +1267,7 @@ int containsReturn(node *body)
         return 0;
 
     if (strcmp(body->token,"return")==0)
-        return 1;                      /* נמצא return → שגיאה */
+        return 1;              
 
     if (containsReturn(body->left )) return 1;
     if (containsReturn(body->right)) return 1;
