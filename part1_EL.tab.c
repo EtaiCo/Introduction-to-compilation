@@ -660,10 +660,10 @@ static const yytype_int16 yyrline[] =
      421,   423,   424,   430,   431,   432,   433,   434,   435,   436,
      437,   438,   439,   445,   473,   486,   502,   524,   547,   556,
      565,   574,   585,   595,   606,   608,   614,   629,   637,   642,
-     642,   643,   643,   650,   651,   658,   667,   715,   716,   722,
-     725,   728,   731,   735,   746,   747,   748,   749,   752,   753,
-     775,   777,   795,   808,   809,   814,   815,   816,   817,   818,
-     819,   823,   849,   850,   852,   853,   854,   859
+     642,   643,   643,   650,   651,   658,   667,   715,   716,   723,
+     727,   731,   735,   738,   749,   750,   751,   752,   755,   756,
+     778,   780,   798,   811,   812,   817,   818,   819,   820,   821,
+     822,   826,   852,   853,   855,   856,   857,   862
 };
 #endif
 
@@ -2269,39 +2269,34 @@ yyreduce:
     break;
 
   case 79: /* expression: INT_LIT  */
-#line 722 "part1_EL.y"
-             {
-    (yyval.nodePtr) = mknode(strdup("INT"), NULL, NULL);
-    }
-#line 2277 "part1_EL.tab.c"
+#line 724 "part1_EL.y"
+        { char ibuf[32]; sprintf(ibuf,"%d",(yyvsp[0].intVal));
+        (yyval.nodePtr) = mknode("INT", mknode(strdup(ibuf),NULL,NULL), NULL); }
+#line 2276 "part1_EL.tab.c"
     break;
 
   case 80: /* expression: REAL_LIT  */
-#line 725 "part1_EL.y"
-               {
-        (yyval.nodePtr) = mknode(strdup("REAL"), NULL, NULL);
-    }
-#line 2285 "part1_EL.tab.c"
+#line 728 "part1_EL.y"
+        { char rbuf[64]; sprintf(rbuf,"%f",(yyvsp[0].realVal));
+        (yyval.nodePtr) = mknode("REAL", mknode(strdup(rbuf),NULL,NULL), NULL); }
+#line 2283 "part1_EL.tab.c"
     break;
 
   case 81: /* expression: CHAR_LIT  */
-#line 728 "part1_EL.y"
-               {
-        (yyval.nodePtr) = mknode(strdup("CHAR"), NULL, NULL);
-    }
-#line 2293 "part1_EL.tab.c"
+#line 732 "part1_EL.y"
+        { char cbuf[2] = { (char)(yyvsp[0].charVal), '\0' };
+        (yyval.nodePtr) = mknode("CHAR", mknode(strdup(cbuf),NULL,NULL), NULL); }
+#line 2290 "part1_EL.tab.c"
     break;
 
   case 82: /* expression: STRING_LIT  */
-#line 731 "part1_EL.y"
-                 {
-        (yyval.nodePtr) = mknode(strdup("STRING"), NULL, NULL);
-    }
-#line 2301 "part1_EL.tab.c"
+#line 736 "part1_EL.y"
+        { (yyval.nodePtr) = mknode("STRING", mknode(strdup((yyvsp[0].stringVal)),NULL,NULL), NULL); }
+#line 2296 "part1_EL.tab.c"
     break;
 
   case 83: /* expression: IDENT  */
-#line 735 "part1_EL.y"
+#line 738 "part1_EL.y"
             {
         if (!isVarDeclaredInScope((yyvsp[0].stringVal))) {
             char msg[128];
@@ -2311,41 +2306,41 @@ yyreduce:
         }
         (yyval.nodePtr) = mknode((yyvsp[0].stringVal),NULL,NULL);
     }
-#line 2315 "part1_EL.tab.c"
+#line 2310 "part1_EL.tab.c"
     break;
 
   case 84: /* expression: expression PLUS expression  */
-#line 746 "part1_EL.y"
+#line 749 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("+",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2321 "part1_EL.tab.c"
+#line 2316 "part1_EL.tab.c"
     break;
 
   case 85: /* expression: expression MINUS expression  */
-#line 747 "part1_EL.y"
+#line 750 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("-",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2327 "part1_EL.tab.c"
+#line 2322 "part1_EL.tab.c"
     break;
 
   case 86: /* expression: expression MULTI expression  */
-#line 748 "part1_EL.y"
+#line 751 "part1_EL.y"
                                      { (yyval.nodePtr) = mknode("*",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2333 "part1_EL.tab.c"
+#line 2328 "part1_EL.tab.c"
     break;
 
   case 87: /* expression: expression DIV expression  */
-#line 749 "part1_EL.y"
+#line 752 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("/",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2339 "part1_EL.tab.c"
+#line 2334 "part1_EL.tab.c"
     break;
 
   case 88: /* expression: MINUS expression  */
-#line 752 "part1_EL.y"
+#line 755 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode("unary-",(yyvsp[0].nodePtr),NULL); }
-#line 2345 "part1_EL.tab.c"
+#line 2340 "part1_EL.tab.c"
     break;
 
   case 89: /* expression: ADDRESS expression  */
-#line 754 "part1_EL.y"
+#line 757 "part1_EL.y"
     {
         char* baseType = inferExprType((yyvsp[0].nodePtr));
 
@@ -2365,17 +2360,17 @@ yyreduce:
             YYABORT;
         }
     }
-#line 2369 "part1_EL.tab.c"
+#line 2364 "part1_EL.tab.c"
     break;
 
   case 90: /* expression: NOT expression  */
-#line 775 "part1_EL.y"
+#line 778 "part1_EL.y"
                                   { (yyval.nodePtr) = mknode("not", (yyvsp[0].nodePtr), NULL); }
-#line 2375 "part1_EL.tab.c"
+#line 2370 "part1_EL.tab.c"
     break;
 
   case 91: /* expression: MULTI IDENT  */
-#line 778 "part1_EL.y"
+#line 781 "part1_EL.y"
     {
         Symbol* v = lookupSymbol((yyvsp[0].stringVal));
         if (!v){
@@ -2391,11 +2386,11 @@ yyreduce:
         }
         (yyval.nodePtr) = mknode("deref", mknode((yyvsp[0].stringVal),NULL,NULL), NULL);
     }
-#line 2395 "part1_EL.tab.c"
+#line 2390 "part1_EL.tab.c"
     break;
 
   case 92: /* expression: MULTI expression  */
-#line 796 "part1_EL.y"
+#line 799 "part1_EL.y"
     {
         char* t = inferExprType((yyvsp[0].nodePtr));
 
@@ -2405,59 +2400,59 @@ yyreduce:
         }
         (yyval.nodePtr) = mknode("unary*", (yyvsp[0].nodePtr), NULL);
     }
-#line 2409 "part1_EL.tab.c"
+#line 2404 "part1_EL.tab.c"
     break;
 
   case 93: /* expression: '(' expression ')'  */
-#line 808 "part1_EL.y"
+#line 811 "part1_EL.y"
                                     { (yyval.nodePtr) = (yyvsp[-1].nodePtr); }
-#line 2415 "part1_EL.tab.c"
+#line 2410 "part1_EL.tab.c"
     break;
 
   case 94: /* expression: LENGTH expression LENGTH  */
-#line 810 "part1_EL.y"
+#line 813 "part1_EL.y"
                                   { (yyval.nodePtr) = mknode("|", (yyvsp[-1].nodePtr), NULL); }
-#line 2421 "part1_EL.tab.c"
+#line 2416 "part1_EL.tab.c"
     break;
 
   case 95: /* expression: expression EQL expression  */
-#line 814 "part1_EL.y"
+#line 817 "part1_EL.y"
                                      { (yyval.nodePtr) = mknode("==",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2427 "part1_EL.tab.c"
+#line 2422 "part1_EL.tab.c"
     break;
 
   case 96: /* expression: expression NOTEQL expression  */
-#line 815 "part1_EL.y"
+#line 818 "part1_EL.y"
                                         { (yyval.nodePtr) = mknode("!=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2433 "part1_EL.tab.c"
+#line 2428 "part1_EL.tab.c"
     break;
 
   case 97: /* expression: expression GREATEREQL expression  */
-#line 816 "part1_EL.y"
+#line 819 "part1_EL.y"
                                             { (yyval.nodePtr) = mknode(">=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2439 "part1_EL.tab.c"
+#line 2434 "part1_EL.tab.c"
     break;
 
   case 98: /* expression: expression LESSEQL expression  */
-#line 817 "part1_EL.y"
+#line 820 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode("<=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2445 "part1_EL.tab.c"
+#line 2440 "part1_EL.tab.c"
     break;
 
   case 99: /* expression: expression GREATER expression  */
-#line 818 "part1_EL.y"
+#line 821 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode(">", (yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2451 "part1_EL.tab.c"
+#line 2446 "part1_EL.tab.c"
     break;
 
   case 100: /* expression: expression LESS expression  */
-#line 819 "part1_EL.y"
+#line 822 "part1_EL.y"
                                       { (yyval.nodePtr) = mknode("<", (yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2457 "part1_EL.tab.c"
+#line 2452 "part1_EL.tab.c"
     break;
 
   case 101: /* expression: IDENT '[' expression ']'  */
-#line 823 "part1_EL.y"
+#line 826 "part1_EL.y"
                                {
     if (!isVarDeclaredInScope((yyvsp[-3].stringVal))) {
         char msg[128];
@@ -2482,47 +2477,47 @@ yyreduce:
 
     (yyval.nodePtr) = mknode("index", mknode((yyvsp[-3].stringVal), NULL, NULL), (yyvsp[-1].nodePtr));
 }
-#line 2486 "part1_EL.tab.c"
+#line 2481 "part1_EL.tab.c"
     break;
 
   case 102: /* expression: expression AND expression  */
-#line 849 "part1_EL.y"
+#line 852 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("and",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2492 "part1_EL.tab.c"
+#line 2487 "part1_EL.tab.c"
     break;
 
   case 103: /* expression: expression OR expression  */
-#line 850 "part1_EL.y"
+#line 853 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("or",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2498 "part1_EL.tab.c"
+#line 2493 "part1_EL.tab.c"
     break;
 
   case 104: /* expression: TRUE  */
-#line 852 "part1_EL.y"
+#line 855 "part1_EL.y"
                          { (yyval.nodePtr) = mknode("BOOL", mknode("TRUE", NULL, NULL), NULL); }
-#line 2504 "part1_EL.tab.c"
+#line 2499 "part1_EL.tab.c"
     break;
 
   case 105: /* expression: FALSE  */
-#line 853 "part1_EL.y"
+#line 856 "part1_EL.y"
                          { (yyval.nodePtr) = mknode("BOOL", mknode("FALSE", NULL, NULL), NULL); }
-#line 2510 "part1_EL.tab.c"
+#line 2505 "part1_EL.tab.c"
     break;
 
   case 106: /* expression: LENGTH IDENT LENGTH  */
-#line 855 "part1_EL.y"
+#line 858 "part1_EL.y"
       { (yyval.nodePtr) = mknode("|", mknode((yyvsp[-1].stringVal),NULL,NULL), NULL); }
-#line 2516 "part1_EL.tab.c"
+#line 2511 "part1_EL.tab.c"
     break;
 
   case 107: /* expression: func_call  */
-#line 859 "part1_EL.y"
+#line 862 "part1_EL.y"
                                 { (yyval.nodePtr) = (yyvsp[0].nodePtr); }
-#line 2522 "part1_EL.tab.c"
+#line 2517 "part1_EL.tab.c"
     break;
 
 
-#line 2526 "part1_EL.tab.c"
+#line 2521 "part1_EL.tab.c"
 
       default: break;
     }
@@ -2715,7 +2710,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 861 "part1_EL.y"
+#line 864 "part1_EL.y"
   /* ===================  C‑code section ================================*/
 
 #include "lex.yy.c"

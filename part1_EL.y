@@ -719,18 +719,21 @@ exp_list :
 /* ---------------------------  Expressions  ------------------------------*/
 expression :
     /* ---- primary ----*/
-     INT_LIT {
-    $$ = mknode(strdup("INT"), NULL, NULL);
-    }
-    | REAL_LIT {
-        $$ = mknode(strdup("REAL"), NULL, NULL);
-    }
-    | CHAR_LIT {
-        $$ = mknode(strdup("CHAR"), NULL, NULL);
-    }
-    | STRING_LIT {
-        $$ = mknode(strdup("STRING"), NULL, NULL);
-    }
+    /* ---- primary ----*/
+    INT_LIT
+        { char ibuf[32]; sprintf(ibuf,"%d",$1);
+        $$ = mknode("INT", mknode(strdup(ibuf),NULL,NULL), NULL); }
+
+    | REAL_LIT
+        { char rbuf[64]; sprintf(rbuf,"%f",$1);
+        $$ = mknode("REAL", mknode(strdup(rbuf),NULL,NULL), NULL); }
+
+    | CHAR_LIT
+        { char cbuf[2] = { (char)$1, '\0' };
+        $$ = mknode("CHAR", mknode(strdup(cbuf),NULL,NULL), NULL); }
+
+    | STRING_LIT
+        { $$ = mknode("STRING", mknode(strdup($1),NULL,NULL), NULL); }
 
     | IDENT {
         if (!isVarDeclaredInScope($1)) {
