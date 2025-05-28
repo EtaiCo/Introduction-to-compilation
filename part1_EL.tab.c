@@ -3207,6 +3207,21 @@ static char *genExpr(node *e);
 static void  genStmt(node *s);
 
 /* ---------- expression → 3AC (returns temp / var name) -------------------- */
+/* ===== helpers for conditions ===== */
+static int isCmpOp(const char *t)
+{
+    return !strcmp(t,"==") || !strcmp(t,"!=") ||
+           !strcmp(t,"<")  || !strcmp(t,">")  ||
+           !strcmp(t,"<=") || !strcmp(t,">=");
+}
+
+/* מחזיר אופֵרנד – אם זה ליטרל מחזיר את הערך עצמו, אחרת קורא ל-genExpr */
+static char *genOperand(node *e)
+{
+    if (isLiteral(e->token))           /* מספר/תֵו/מחרוזת/TRUE/FALSE/NULL */
+        return strdup(literalValue(e));/* לא יוצר טמפוררי */
+    return genExpr(e);                 /* כל השאר – כרגיל */
+}
 static char *genExpr(node *e)
 {
     if (!e) return strdup("0");
@@ -3333,27 +3348,67 @@ static void genStmt(node *s)
 
     /* IF -------------------------------------------------------------- */
     if (!strcmp(s->token,"if")) {
-        char *Lend = newLabel();
-        emit("if %s == 0 goto %s", genExpr(s->left), Lend);
-        genStmt(s->right);
-        emit("%s:", Lend); return;
-    }
-    if (!strcmp(s->token,"if_else")) {
-        char *Lelse = newLabel(), *Lend = newLabel();
-        emit("if %s == 0 goto %s", genExpr(s->left), Lelse);
-        genStmt(s->right->left); emit("goto %s", Lend);
-        emit("%s:", Lelse);       genStmt(s->right->right);
-        emit("%s:", Lend); return;
+    node *c = s->left;                             /* תנאי */
+    char *Ltrue = newLabel(), *Lend = newLabel();
+
+    if (isCmpOp(c->token)) {                       /* תנאי מסוג a < 5 וכו׳ */
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Ltrue);
+        emit("goto %s", Lend);
+    } else {                                       /* תנאי כללי */
+        char *t = genExpr(c);
+        emit("if %s == 0 goto %s", t, Lend);
+        emit("goto %s", Ltrue);
     }
 
-    /* WHILE ----------------------------------------------------------- */
-    if (!strcmp(s->token,"while")) {
-        char *Lc = newLabel(), *Le = newLabel();
-        emit("%s:", Lc);
-        emit("if %s == 0 goto %s", genExpr(s->left), Le);
-        genStmt(s->right);
-        emit("goto %s", Lc); emit("%s:", Le); return;
+    emit("%s:", Ltrue);
+    genStmt(s->right);
+    emit("%s:", Lend); return;
+}
+
+if (!strcmp(s->token,"if_else")) {
+    node *c = s->left;
+    char *Lthen = newLabel(), *Lelse = newLabel(), *Lend = newLabel();
+
+    if (isCmpOp(c->token)) {
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Lthen);
+        emit("goto %s", Lelse);
+    } else {
+        char *t = genExpr(c);
+        emit("if %s != 0 goto %s", t, Lthen);
+        emit("goto %s", Lelse);
     }
+
+    emit("%s:", Lthen);  genStmt(s->right->left);  emit("goto %s", Lend);
+    emit("%s:", Lelse);  genStmt(s->right->right->left); 
+    emit("%s:", Lend);   return;
+}
+
+
+    /* WHILE ----------------------------------------------------------- */
+if (!strcmp(s->token,"while")) {
+    char *Lcond = newLabel(), *Lbody = newLabel(), *Lend = newLabel();
+    emit("%s:", Lcond);
+
+    node *c = s->left;
+    if (isCmpOp(c->token)) {
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Lbody);
+        emit("goto %s", Lend);
+    } else {
+        char *t = genExpr(c);
+        emit("if %s != 0 goto %s", t, Lbody);
+        emit("goto %s", Lend);
+    }
+
+    emit("%s:", Lbody);  genStmt(s->right);   emit("goto %s", Lcond);
+    emit("%s:", Lend);   return;
+}
+
 
     /* DO-WHILE -------------------------------------------------------- */
     if (!strcmp(s->token,"do_while")) {
@@ -3391,11 +3446,12 @@ static void genFunction(node *f)
     Instr *beginLine = codeTail;                 /* remember line   */
     int    tempBefore = tempCnt;                 /* snapshot temps  */
 
-    /* BODY wrapper → statements are BODY->right */
-    node *stmts = f->right                     /* FUNC_IN      */
-                     ->right                  /* DEF_BODY     */
-                     ->right                  /* BODY         */
-                     ->right;                 /* statements   */
+     int  isFunc = !strcmp(f->token, "FUNCTION");
+    node *body  = isFunc ? f->right->right->right   /* FUNCTION */
+                         : f->right->right;         /* PROC     */
+
+    /* statements נמצאים תמיד ב-body->right */
+    node *stmts = body->right;
 
     genStmt(stmts);
 
@@ -3404,13 +3460,24 @@ static void genFunction(node *f)
 
     /* count local decls in BODY->left (var) */
     int localsBytes = 0;
-    node *declChain = f->right->right->right->left;   /* VAR or NULL */
+    node *declChain = body->left;     /* VAR or NULL */
     if (declChain && !strcmp(declChain->token,"VAR")) {
         node *d = declChain->left;    /* first DECL / DECS */
-        while (d) {
+         while (d) {
             node *single = (!strcmp(d->token,"DECS")) ? d->left : d;
-            const char *typ = single->left->token;     /* type node token */
-            localsBytes += sizeofType(typ);
+            const char *typ = single->left->token;     /* ★ היה כאן localsBytes += sizeofType(typ); */
+
+            /* ★★★ בלוק חדש – סופר כמה מזהים יש בהכרזה ★★★ */
+            int nvars = 0;
+            node *ids = single->right;                 /* רשימת המזהים */
+            while (ids) {
+                nvars++;
+                ids = (!strcmp(ids->token,"ID_LIST")) ? ids->right : NULL;
+            }
+            if (nvars == 0) nvars = 1;                 /* VAR_DECL יחיד */
+
+            localsBytes += nvars * sizeofType(typ);    /* ★ השורה החדשה */
+
             d = (!strcmp(d->token,"DECS")) ? d->right : NULL;
         }
     }
