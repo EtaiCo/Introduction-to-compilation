@@ -1,11 +1,15 @@
 def foo(par1 real:x): 
+begin
 var 
     type int:a,b; 
 begin 
 end
- 
+end 
+
 def _main_():  
+begin
 var 
     type int:a,b; 
 begin 
+end
 end

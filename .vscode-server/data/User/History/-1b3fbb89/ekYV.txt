@@ -1,0 +1,12 @@
+
+def _main_():  
+var 
+      type int:a,b; 
+begin 
+ a = 0; 
+ while a < 10: 
+ begin 
+  b = call foo(3.14); 
+  a = a + b; 
+ end  
+end 
