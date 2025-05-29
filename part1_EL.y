@@ -1332,7 +1332,18 @@ static void emit(const char *fmt, ...)
 
 void dumpCode(FILE *out)
 {
-    for (Instr *p = codeHead; p; p = p->next) fprintf(out, "%s\n", p->text);
+    const char *IND = "    ";                 /* 4-spaces indentation */
+
+    for (Instr *p = codeHead; p; p = p->next) {
+        const char *txt = p->text;
+        size_t      len = strlen(txt);
+
+        /* LABEL או כותרת פונקציה - משאירים צמוד לשמאל */
+        if (len > 0 && txt[len - 1] == ':')
+            fprintf(out, "%s\n", txt);
+        else
+            fprintf(out, "%s%s\n", IND, txt); /* שאר ההוראות מוזחות */
+    }
 }
 
 /* ---------- helpers --------------------------------------------------------- */
