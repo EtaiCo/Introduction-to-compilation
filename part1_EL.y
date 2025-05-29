@@ -121,7 +121,7 @@
 %type <nodePtr> for_state for_h advance_exp 
 %type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression 
-
+%type <nodePtr> suite 
 
 
 %%
@@ -543,42 +543,56 @@ assign_state
 
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
-if_state :
-    IF expression ':' bl_state  %prec ELSELESS
-    {
-        if (strcmp(inferExprType($2), "bool") != 0) {
-            yyerror("Semantic Error: IF condition must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if", $2, $4);
-    }
+/* dangling-else precedence stays exactly the same */
 
-  | IF expression ':' bl_state ELSE ':' bl_state
-    {
-        if (strcmp(inferExprType($2), "bool") != 0) {
-            yyerror("Semantic Error: IF condition must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
-    }
+suite
+    : bl_state                 { $$ = $1; }   /* BEGIN … END  */
+    | state                    { $$ = $1; }   /* single stmt  */
+    ;
+    
+if_state
+    : IF expression ':' suite               %prec ELSELESS
+      {
+          if (strcmp(inferExprType($2), "bool") != 0)
+              { yyerror("Semantic Error: IF condition must be of type 'bool'."); YYABORT; }
+          $$ = mknode("if", $2, $4);
+      }
 
-  | IF expression ':' bl_state ELIF expression ':' bl_state
-    {
-        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
-    }
+    | IF expression ':' suite ELSE ':' suite
+      {
+          if (strcmp(inferExprType($2), "bool") != 0)
+              { yyerror("Semantic Error: IF condition must be of type 'bool'."); YYABORT; }
+          $$ = mknode("if_else", $2,
+                       mknode("then", $4,
+                              mknode("else", $7, NULL)));
+      }
 
-  | IF expression ':' bl_state ELIF expression ':' bl_state ELSE ':' bl_state
-    {
-        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL)))));
-    };
+    | IF expression ':' suite
+      ELIF expression ':' suite
+      {
+          if (strcmp(inferExprType($2), "bool") != 0 ||
+              strcmp(inferExprType($6), "bool") != 0)
+              { yyerror("Semantic Error: IF/ELIF conditions must be bool."); YYABORT; }
+          $$ = mknode("if_elif", $2,
+                       mknode("then", $4,
+                              mknode("elif", $6, $8)));
+      }
+
+    | IF expression ':' suite
+      ELIF expression ':' suite
+      ELSE ':' suite
+      {
+          if (strcmp(inferExprType($2), "bool") != 0 ||
+              strcmp(inferExprType($6), "bool") != 0)
+              { yyerror("Semantic Error: IF/ELIF conditions must be bool."); YYABORT; }
+          $$ = mknode("if_elif-else", $2,
+                       mknode("then", $4,
+                              mknode("elif", $6,
+                                     mknode("elif-then", $8,
+                                            mknode("else", $11, NULL)))));
+      }
+    ;
+
 
 /* -----------------------------  WHILE loop ------------------------------*/
 while_state :
@@ -1300,7 +1314,7 @@ typedef struct Instr {
 
 static Instr *codeHead = NULL, *codeTail = NULL;
 static int    tempCnt  = 0;
-static int    labelCnt = 0;
+static int    labelCnt = 1;
 
 static char *newTemp () { char b[32]; sprintf(b,"t%d", tempCnt++);  return strdup(b); }
 static char *newLabel() { char b[32]; sprintf(b,"L%d", labelCnt++); return strdup(b); }
@@ -1343,6 +1357,28 @@ static int sizeofType(const char *t)
     if (!strcasecmp(t,"string"))                               return 8;
     return 4;   /* int, char, bool, intptr, charptr … */
 }
+/* ===== TEMP-SIZE TRACKING =========================================== */
+static int tempBytesInFunc = 0;          /* reset at each genFunction */
+
+/* byte size of the value produced by expression e */
+static int resultSize(node *e)
+{
+    const char *t = inferExprType(e);    /* "int", "realptr", …        */
+    if (!t) return 4;
+    if (!strcasecmp(t,"real") || !strcasecmp(t,"realptr")
+                              || !strcasecmp(t,"string"))
+        return 8;                       /* 8-byte values              */
+    return 4;                           /* everything else            */
+}
+
+/* allocate a temp for expression e and remember its size */
+static char *makeTempFor(node *e)
+{
+    tempBytesInFunc += resultSize(e);
+    char buf[32]; sprintf(buf,"t%d", tempCnt++);
+    return strdup(buf);
+}
+
 
 /* modify “BeginFunc 0” with real byte count */
 static void patchBeginSize(Instr *beginLine, int bytes)
@@ -1378,17 +1414,17 @@ static char *genExpr(node *e)
 
     /* 1. terminals ---------------------------------------------------- */
     if (isLiteral(e->token)) {
-        char *t = newTemp();
+        char *t =makeTempFor(e);
         emit("%s = %s", t, literalValue(e));
         return t;
     }
     if (!strcmp(e->token,"TRUE") || !strcmp(e->token,"FALSE")) {
-        char *t = newTemp();
+        char *t =makeTempFor(e);
         emit("%s = %s", t, !strcmp(e->token,"TRUE") ? "1" : "0");
         return t;
     }
     if (!strcmp(e->token,"NULL")) {
-        char *t = newTemp();
+        char *t =makeTempFor(e);
         emit("%s = 0", t);
         return t;
     }
@@ -1399,19 +1435,19 @@ static char *genExpr(node *e)
     /* 2. unary -------------------------------------------------------- */
     if (!strcmp(e->token,"unary-")) {
         char *v = genExpr(e->left);
-        char *t = newTemp(); emit("%s = - %s", t, v); return t;
+        char *t =makeTempFor(e); emit("%s = - %s", t, v); return t;
     }
     if (!strcmp(e->token,"not")) {
         char *v = genExpr(e->left);
-        char *t = newTemp(); emit("%s = ! %s", t, v); return t;
+        char *t =makeTempFor(e); emit("%s = ! %s", t, v); return t;
     }
     if (!strcmp(e->token,"&")) {
         char *v = genExpr(e->left);
-        char *t = newTemp(); emit("%s = & %s", t, v); return t;
+        char *t =makeTempFor(e); emit("%s = & %s", t, v); return t;
     }
     if (!strcmp(e->token,"deref") || !strcmp(e->token,"unary*")) {
         char *p = genExpr(e->left ? e->left : e->right);
-        char *t = newTemp(); emit("%s = * %s", t, p); return t;
+        char *t =makeTempFor(e); emit("%s = * %s", t, p); return t;
     }
 
     /* 3. binary arithmetic / logic ----------------------------------- */
@@ -1421,7 +1457,7 @@ static char *genExpr(node *e)
         if (!strcmp(e->token, binOps[i])) {
             char *l = genExpr(e->left);
             char *r = genExpr(e->right);
-            char *t = newTemp();
+            char *t =makeTempFor(e);
             emit("%s = %s %s %s", t, l, binOps[i], r);
             return t;
         }
@@ -1431,7 +1467,7 @@ static char *genExpr(node *e)
     if (!strcmp(e->token,"index")) {
         char *base = genExpr(e->left);   /* IDENT gives name */
         char *idx  = genExpr(e->right);
-        char *t    = newTemp();
+        char *t    =makeTempFor(e);
         emit("%s = %s [ %s ]", t, base, idx);
         return t;
     }
@@ -1452,7 +1488,7 @@ static char *genExpr(node *e)
             bytes += sizeofType(inferExprType(stack[i]));
         }
 
-        char *ret = newTemp();
+        char *ret =makeTempFor(e);
         emit("%s = LCall %s", ret, fname);
         if (bytes) emit("PopParams %d", bytes);
         return ret;
@@ -1593,10 +1629,9 @@ static void genFunction(node *f)
     const char *fname = f->left->token;          /* IDENT */
     emit("\n%s:", fname);
     emit("BeginFunc 0");                         /* placeholder */
-    Instr *beginLine = codeTail;                 /* remember line   */
-    int    tempBefore = tempCnt;                 /* snapshot temps  */
-
-     int  isFunc = !strcmp(f->token, "FUNCTION");
+    Instr *beginLine = codeTail;
+    tempBytesInFunc  = 0;          /* start counting for this func */
+    int  isFunc = !strcmp(f->token, "FUNCTION");
     node *body  = isFunc ? f->right->right->right   /* FUNCTION */
                          : f->right->right;         /* PROC     */
 
@@ -1605,8 +1640,8 @@ static void genFunction(node *f)
 
     genStmt(stmts);
 
-    /* frame size = locals + new temps */
-    int tempsBytes = (tempCnt - tempBefore) * 4;
+    /* frame size = locals + total temp bytes we just counted */
+    int tempsBytes = tempBytesInFunc;
 
     /* count local decls in BODY->left (var) */
     int localsBytes = 0;

@@ -62,6 +62,9 @@
     int isPointerType(const char* type);
     int registerParams(node* plist);
     int containsReturn(node* body);  
+    void generateCode(node *root);
+    void dumpCode(FILE *out);
+
 
     int mainDeclared = 0;
     int scopeDepth = 0;
@@ -303,7 +306,6 @@ param_list :
 param :
         PAR type ':' IDENT
         {
-            /* ---- בדיקת סדר par ---- */
             if ($1 != paramOrderIdx + 1) {
                 yyerror("Semantic Error: parameters must be in sequential order (par1, par2, …).");
                 YYABORT;
@@ -519,24 +521,26 @@ assign_state
     }
     ;
 
-    | MULTI IDENT ASSIGN expression ';'
+    | MULTI expression ASSIGN expression ';'
     {
-        Symbol* v = lookupSymbol($2);
-        if (!v || !isPointerType(v->returnType)) {
+        char* lhsType = inferExprType($2);  // the pointer
+        char* rhsType = inferExprType($4);  // the value to assign
+
+        if (!isPointerType(lhsType)) {
             yyerror("Semantic Error: Left-hand side must be a pointer.");
             YYABORT;
         }
 
-        char* rhsType = inferExprType($4);
-        if (strcasecmp(v->returnType, "intptr") == 0 && !isInt(rhsType) ||
-            strcasecmp(v->returnType, "realptr") == 0 && !isReal(rhsType) ||
-            strcasecmp(v->returnType, "charptr") == 0 && !isChar(rhsType)) {
+        if ((strcasecmp(lhsType, "intptr") == 0 && !isInt(rhsType)) ||
+            (strcasecmp(lhsType, "realptr") == 0 && !isReal(rhsType)) ||
+            (strcasecmp(lhsType, "charptr") == 0 && !isChar(rhsType))) {
             yyerror("Semantic Error: Dereferenced pointer type mismatch.");
             YYABORT;
         }
 
-        $$ = mknode("deref_assign", mknode($2, NULL, NULL), $4);
+        $$ = mknode("deref_assign", $2, $4);  // $2 is expression for pointer, not just IDENT
     }
+
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
 if_state :
@@ -715,18 +719,21 @@ exp_list :
 /* ---------------------------  Expressions  ------------------------------*/
 expression :
     /* ---- primary ----*/
-     INT_LIT {
-    $$ = mknode(strdup("INT"), NULL, NULL);
-    }
-    | REAL_LIT {
-        $$ = mknode(strdup("REAL"), NULL, NULL);
-    }
-    | CHAR_LIT {
-        $$ = mknode(strdup("CHAR"), NULL, NULL);
-    }
-    | STRING_LIT {
-        $$ = mknode(strdup("STRING"), NULL, NULL);
-    }
+    /* ---- primary ----*/
+    INT_LIT
+        { char ibuf[32]; sprintf(ibuf,"%d",$1);
+        $$ = mknode("INT", mknode(strdup(ibuf),NULL,NULL), NULL); }
+
+    | REAL_LIT
+        { char rbuf[64]; sprintf(rbuf,"%f",$1);
+        $$ = mknode("REAL", mknode(strdup(rbuf),NULL,NULL), NULL); }
+
+    | CHAR_LIT
+        { char cbuf[2] = { (char)$1, '\0' };
+        $$ = mknode("CHAR", mknode(strdup(cbuf),NULL,NULL), NULL); }
+
+    | STRING_LIT
+        { $$ = mknode("STRING", mknode(strdup($1),NULL,NULL), NULL); }
 
     | IDENT {
         if (!isVarDeclaredInScope($1)) {
@@ -876,7 +883,11 @@ int main(void)
 {
     yyparse();
 
-    if (isMainExists()) return 1; 
+    if (isMainExists()) return 1;
+
+    generateCode(ASTRoot);     
+    
+    dumpCode(stdout); 
 
     printTree(ASTRoot, 0);  
 
@@ -1034,13 +1045,12 @@ void popScope()
     {
         Symbol *s = *current;
 
-        /* remove only VAR symbols belonging to the scope being popped */
        if (s->scopeDepth == scopeDepth && s->type == VAR) {
             *current = s->next;
             free(s->name);
             if (s->returnType) free(s->returnType);
             free(s);
-            continue;                 /* stay at same *current */
+            continue;                 
         }
         current = &s->next;
     }
@@ -1190,6 +1200,20 @@ char* inferExprType(node* expr)
         if (strcasecmp(ptrT,"charptr")==0) return "char";
         return "unknown";   
     }
+    // Function call inference
+    if (strcmp(expr->token, "call") == 0) {
+        if (!expr->left || !expr->left->token) {
+            return "unknown";
+        }
+        char* fname = expr->left->token;
+        Symbol* f = lookupSymbol(fname);
+        if (f && f->type == FUNC && f->returnType) {
+            char* lowered = strdup(f->returnType);
+            for (char* p = lowered; *p; ++p) *p = tolower(*p);
+            return lowered;
+        }
+        return "unknown";
+    }
 
     printf("inferExprType: WARNING – unknown token %s\n",expr->token);
     return "unknown";
@@ -1253,10 +1277,396 @@ int containsReturn(node *body)
         return 0;
 
     if (strcmp(body->token,"return")==0)
-        return 1;                      /* נמצא return → שגיאה */
+        return 1;              
 
     if (containsReturn(body->left )) return 1;
     if (containsReturn(body->right)) return 1;
 
     return 0;
 }
+
+/* =========================  3-ADDRESS-CODE GENERATOR  =========================
+   ⬇  Paste this whole module *after* your existing C-code section (before the
+      final closing brace).  Nothing in Parts 1-2 is changed.                */
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* ---------- instruction list infrastructure ---------- */
+typedef struct Instr {
+    char *text;
+    struct Instr *next;
+} Instr;
+
+static Instr *codeHead = NULL, *codeTail = NULL;
+static int    tempCnt  = 0;
+static int    labelCnt = 1;
+
+static char *newTemp () { char b[32]; sprintf(b,"t%d", tempCnt++);  return strdup(b); }
+static char *newLabel() { char b[32]; sprintf(b,"L%d", labelCnt++); return strdup(b); }
+
+static void emit(const char *fmt, ...)
+{
+    va_list ap; char buf[128];
+    va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
+
+    Instr *n = (Instr *)malloc(sizeof(Instr));
+    n->text = strdup(buf); n->next = NULL;
+    if (!codeHead) codeHead = codeTail = n;
+    else           codeTail = codeTail->next = n;
+}
+
+void dumpCode(FILE *out)
+{
+    for (Instr *p = codeHead; p; p = p->next) fprintf(out, "%s\n", p->text);
+}
+
+/* ---------- helpers --------------------------------------------------------- */
+static int isLiteral(const char *tok)
+{
+    return !strcmp(tok,"INT")   || !strcmp(tok,"REAL") ||
+           !strcmp(tok,"CHAR")  || !strcmp(tok,"STRING") ||
+           !strcmp(tok,"BOOL");
+}
+
+/* AST stores literal value in lit->left->token */
+static const char *literalValue(node *lit)
+{
+    return (lit->left && lit->left->token) ? lit->left->token : "0";
+}
+
+/* fast sizeof for frame calculation (4-byte default) */
+static int sizeofType(const char *t)
+{
+    if (!t) return 4;
+    if (!strcasecmp(t,"real")   || !strcasecmp(t,"realptr"))   return 8;
+    if (!strcasecmp(t,"string"))                               return 8;
+    return 4;   /* int, char, bool, intptr, charptr … */
+}
+/* ===== TEMP-SIZE TRACKING =========================================== */
+static int tempBytesInFunc = 0;          /* reset at each genFunction */
+
+/* byte size of the value produced by expression e */
+static int resultSize(node *e)
+{
+    const char *t = inferExprType(e);    /* "int", "realptr", …        */
+    if (!t) return 4;
+    if (!strcasecmp(t,"real") || !strcasecmp(t,"realptr")
+                              || !strcasecmp(t,"string"))
+        return 8;                       /* 8-byte values              */
+    return 4;                           /* everything else            */
+}
+
+/* allocate a temp for expression e and remember its size */
+static char *makeTempFor(node *e)
+{
+    tempBytesInFunc += resultSize(e);
+    char buf[32]; sprintf(buf,"t%d", tempCnt++);
+    return strdup(buf);
+}
+
+
+/* modify “BeginFunc 0” with real byte count */
+static void patchBeginSize(Instr *beginLine, int bytes)
+{
+    char buf[16]; sprintf(buf, "%d", bytes);
+    /* "BeginFunc " is 10 chars, overwrite from there */
+    strcpy(beginLine->text + 10, buf);
+}
+
+/* ---------- forward decls for mutually recursive generators --------------- */
+static char *genExpr(node *e);
+static void  genStmt(node *s);
+
+/* ---------- expression → 3AC (returns temp / var name) -------------------- */
+/* ===== helpers for conditions ===== */
+static int isCmpOp(const char *t)
+{
+    return !strcmp(t,"==") || !strcmp(t,"!=") ||
+           !strcmp(t,"<")  || !strcmp(t,">")  ||
+           !strcmp(t,"<=") || !strcmp(t,">=");
+}
+
+/* מחזיר אופֵרנד – אם זה ליטרל מחזיר את הערך עצמו, אחרת קורא ל-genExpr */
+static char *genOperand(node *e)
+{
+    if (isLiteral(e->token))           /* מספר/תֵו/מחרוזת/TRUE/FALSE/NULL */
+        return strdup(literalValue(e));/* לא יוצר טמפוררי */
+    return genExpr(e);                 /* כל השאר – כרגיל */
+}
+static char *genExpr(node *e)
+{
+    if (!e) return strdup("0");
+
+    /* 1. terminals ---------------------------------------------------- */
+    if (isLiteral(e->token)) {
+        char *t = newTemp();
+        emit("%s = %s", t, literalValue(e));
+        return t;
+    }
+    if (!strcmp(e->token,"TRUE") || !strcmp(e->token,"FALSE")) {
+        char *t = newTemp();
+        emit("%s = %s", t, !strcmp(e->token,"TRUE") ? "1" : "0");
+        return t;
+    }
+    if (!strcmp(e->token,"NULL")) {
+        char *t = newTemp();
+        emit("%s = 0", t);
+        return t;
+    }
+    if (lookupSymbol(e->token)) {          /* variable / param */
+        return strdup(e->token);           /* already stored */
+    }
+
+    /* 2. unary -------------------------------------------------------- */
+    if (!strcmp(e->token,"unary-")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = - %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"not")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = ! %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"&")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = & %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"deref") || !strcmp(e->token,"unary*")) {
+        char *p = genExpr(e->left ? e->left : e->right);
+        char *t = newTemp(); emit("%s = * %s", t, p); return t;
+    }
+
+    /* 3. binary arithmetic / logic ----------------------------------- */
+    const char *binOps[] = {"+","-","*","/","and","or",
+                            "==","!=","<",">","<=",">="};
+    for (size_t i = 0; i < sizeof(binOps)/sizeof(binOps[0]); ++i) {
+        if (!strcmp(e->token, binOps[i])) {
+            char *l = genExpr(e->left);
+            char *r = genExpr(e->right);
+            char *t = newTemp();
+            emit("%s = %s %s %s", t, l, binOps[i], r);
+            return t;
+        }
+    }
+
+    /* 4. array indexing ---------------------------------------------- */
+    if (!strcmp(e->token,"index")) {
+        char *base = genExpr(e->left);   /* IDENT gives name */
+        char *idx  = genExpr(e->right);
+        char *t    = newTemp();
+        emit("%s = %s [ %s ]", t, base, idx);
+        return t;
+    }
+
+    /* 5. function call ----------------------------------------------- */
+    if (!strcmp(e->token,"call")) {
+        const char *fname = e->left->token;
+
+        /* gather params into stack[] for reverse push                  */
+        node *stack[32]; int top = 0;
+        for (node *p = e->right; p; p = (!strcmp(p->token,"exp_list")) ? p->right : NULL)
+            stack[top++] = (!strcmp(p->token,"exp_list")) ? p->left : p;
+
+        int bytes = 0;
+        for (int i = top - 1; i >= 0; --i) {
+            char *val = genExpr(stack[i]);
+            emit("PushParam %s", val);
+            bytes += sizeofType(inferExprType(stack[i]));
+        }
+
+        char *ret = newTemp();
+        emit("%s = LCall %s", ret, fname);
+        if (bytes) emit("PopParams %d", bytes);
+        return ret;
+    }
+
+    fprintf(stderr,"[CodeGen] unhandled expr token %s\n", e->token);
+    return strdup("0");
+}
+
+/* ---------- statement generator ---------------------------------------- */
+static void genStmt(node *s)
+{
+    if (!s || !s->token) return;
+
+    /* list of statements */
+    if (!strcmp(s->token,"statements")) { genStmt(s->left); genStmt(s->right); return; }
+
+    /* assignments ----------------------------------------------------- */
+    if (!strcmp(s->token,"assign")) {
+        char *rhs = genExpr(s->right);
+        emit("%s = %s", s->left->token, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"deref_assign")) {
+        char *lhs = genExpr(s->left);
+        char *rhs = genExpr(s->right);
+        emit("* %s = %s", lhs, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"array_assign")) {
+        char *idx = genExpr(s->left->left);
+        char *rhs = genExpr(s->right);
+        emit("%s [ %s ] = %s", s->left->token, idx, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"null_assign")) { emit("%s = 0", s->left->token); return; }
+
+    /* return ---------------------------------------------------------- */
+    if (!strcmp(s->token,"return")) { emit("Return %s", genExpr(s->left)); return; }
+
+    /* block ----------------------------------------------------------- */
+    if (!strcmp(s->token,"block")) { genStmt(s->left); return; }
+
+    /* IF -------------------------------------------------------------- */
+    if (!strcmp(s->token,"if")) {
+    node *c = s->left;                             /* תנאי */
+    char *Ltrue = newLabel(), *Lend = newLabel();
+
+    if (isCmpOp(c->token)) {                       /* תנאי מסוג a < 5 וכו׳ */
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Ltrue);
+        emit("goto %s", Lend);
+    } else {                                       /* תנאי כללי */
+        char *t = genExpr(c);
+        emit("if %s == 0 goto %s", t, Lend);
+        emit("goto %s", Ltrue);
+    }
+
+    emit("%s:", Ltrue);
+    genStmt(s->right);
+    emit("%s:", Lend); return;
+}
+
+if (!strcmp(s->token,"if_else")) {
+    node *c = s->left;
+    char *Lthen = newLabel(), *Lelse = newLabel(), *Lend = newLabel();
+
+    if (isCmpOp(c->token)) {
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Lthen);
+        emit("goto %s", Lelse);
+    } else {
+        char *t = genExpr(c);
+        emit("if %s != 0 goto %s", t, Lthen);
+        emit("goto %s", Lelse);
+    }
+
+    emit("%s:", Lthen);  genStmt(s->right->left);  emit("goto %s", Lend);
+    emit("%s:", Lelse);  genStmt(s->right->right->left); 
+    emit("%s:", Lend);   return;
+}
+
+
+    /* WHILE ----------------------------------------------------------- */
+if (!strcmp(s->token,"while")) {
+    char *Lcond = newLabel(), *Lbody = newLabel(), *Lend = newLabel();
+    emit("%s:", Lcond);
+
+    node *c = s->left;
+    if (isCmpOp(c->token)) {
+        char *lhs = genOperand(c->left);
+        char *rhs = genOperand(c->right);
+        emit("if %s %s %s goto %s", lhs, c->token, rhs, Lbody);
+        emit("goto %s", Lend);
+    } else {
+        char *t = genExpr(c);
+        emit("if %s != 0 goto %s", t, Lbody);
+        emit("goto %s", Lend);
+    }
+
+    emit("%s:", Lbody);  genStmt(s->right);   emit("goto %s", Lcond);
+    emit("%s:", Lend);   return;
+}
+
+
+    /* DO-WHILE -------------------------------------------------------- */
+    if (!strcmp(s->token,"do_while")) {
+        char *Ls = newLabel();
+        emit("%s:", Ls); genStmt(s->left);
+        emit("if %s != 0 goto %s", genExpr(s->right->left), Ls); return;
+    }
+
+    /* FOR ------------------------------------------------------------- */
+    if (!strcmp(s->token,"for")) {
+        node *h = s->left;
+        node *initVar   = h->left->left;     /* IDENT */
+        node *initExpr  = h->left->right;
+        node *condExpr  = h->right->left;
+        node *updateExp = h->right->right;
+
+        char *Lc = newLabel(), *Le = newLabel();
+
+        emit("%s = %s", initVar->token, genExpr(initExpr));
+        emit("%s:", Lc);
+        emit("if %s == 0 goto %s", genExpr(condExpr), Le);
+        genStmt(s->right);
+        emit("%s = %s", updateExp->left->token, genExpr(updateExp->right));
+        emit("goto %s", Lc);
+        emit("%s:", Le); return;
+    }
+}
+
+/* ---------- per-function + global traversal ---------------------------- */
+static void genFunction(node *f)
+{
+    const char *fname = f->left->token;          /* IDENT */
+    emit("\n%s:", fname);
+    emit("BeginFunc 0");                         /* placeholder */
+    Instr *beginLine = codeTail;                 /* remember line   */
+    int    tempBefore = tempCnt;                 /* snapshot temps  */
+
+     int  isFunc = !strcmp(f->token, "FUNCTION");
+    node *body  = isFunc ? f->right->right->right   /* FUNCTION */
+                         : f->right->right;         /* PROC     */
+
+    /* statements נמצאים תמיד ב-body->right */
+    node *stmts = body->right;
+
+    genStmt(stmts);
+
+    /* frame size = locals + new temps */
+    int tempsBytes = (tempCnt - tempBefore) * 4;
+
+    /* count local decls in BODY->left (var) */
+    int localsBytes = 0;
+    node *declChain = body->left;     /* VAR or NULL */
+    if (declChain && !strcmp(declChain->token,"VAR")) {
+        node *d = declChain->left;    /* first DECL / DECS */
+         while (d) {
+            node *single = (!strcmp(d->token,"DECS")) ? d->left : d;
+            const char *typ = single->left->token;     /* ★ היה כאן localsBytes += sizeofType(typ); */
+
+            /* ★★★ בלוק חדש – סופר כמה מזהים יש בהכרזה ★★★ */
+            int nvars = 0;
+            node *ids = single->right;                 /* רשימת המזהים */
+            while (ids) {
+                nvars++;
+                ids = (!strcmp(ids->token,"ID_LIST")) ? ids->right : NULL;
+            }
+            if (nvars == 0) nvars = 1;                 /* VAR_DECL יחיד */
+
+            localsBytes += nvars * sizeofType(typ);    /* ★ השורה החדשה */
+
+            d = (!strcmp(d->token,"DECS")) ? d->right : NULL;
+        }
+    }
+    patchBeginSize(beginLine, tempsBytes + localsBytes);
+
+    emit("EndFunc");
+}
+
+static void genGlobal(node *n)
+{
+    if (!n) return;
+    if (!strcmp(n->token,"FUNCS")) { genGlobal(n->left); genGlobal(n->right); }
+    else if (!strcmp(n->token,"FUNCTION") || !strcmp(n->token,"PROC")) genFunction(n);
+}
+
+void generateCode(node *root)
+{
+    if (root && !strcmp(root->token,"CODE")) genGlobal(root->left);
+}
+
