@@ -1,0 +1,29 @@
+def foo(par1 real:x): returns int 
+var 
+      type int:a,b; 
+begin 
+ a = 23; 
+ 
+ if a == 23: 
+ begin 
+  b = 10; 
+ end 
+ else:
+ begin 
+  b = 19; 
+ end
+ return b + a; 
+end
+ 
+ 
+def main():  
+var 
+      type int:A,B; 
+begin 
+ A = 0; 
+ while A < 10: 
+ begin 
+  B = call foo(3.14); 
+  A = A + B; 
+ end  
+end

@@ -1,5 +1,3 @@
-./compiler<rule3b.txt
-./compiler<rule3a.txt
 ./compiler<rule3c.txt
 bison -d part1_EL.y
 gcc -Wall part1_EL.tab.c -o compiler
@@ -498,3 +496,5 @@ git remote -v
 git push -u origin main
 git fetch
 git pull
+git pull
+git log

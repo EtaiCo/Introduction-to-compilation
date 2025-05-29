@@ -1,0 +1,1587 @@
+
+%{
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <ctype.h> 
+    #define MAX_PARAMS 10
+
+    
+    int yylex();
+    int yyerror(const char *s);
+    extern int yylineno;  
+    extern char* yytext; 
+    /* === helpers for type checking (added) === */
+    int  isInt   (const char* t);
+    int  isReal  (const char* t);
+    int  isBool  (const char* t);
+    int  isChar  (const char* t);
+    int  isStr   (const char* t);
+    int  isNumeric(const char* t);
+    int  samePtrType(const char* a,const char* b);
+    int paramOrderIdx = 0;   
+    int semanticErrSeen = 0;   /* =1 after the first semantic error */
+
+    /* AST node */
+    typedef struct node {
+        char* token;  
+        struct node* left;   
+        struct node* right; 
+    } node;
+
+    node* ASTRoot = NULL;
+    node *mknode(char* token, node* left, node* right);
+    void printTree(node* tree, int level);
+
+    typedef enum { FUNC, VAR } SymbolType;
+
+    typedef struct Symbol {
+        char* name;
+        SymbolType type;
+        char* returnType;
+        int paramCount;
+        char* scope;
+        int scopeDepth; 
+        char* paramTypes[MAX_PARAMS];
+        struct Symbol* next;
+    } Symbol;
+
+    Symbol* symbolTable = NULL;
+
+    int insertSymbol(char* name, SymbolType type, char* returnType, int paramCount, const char* scope, char* paramTypes[]);
+    Symbol* lookupSymbol(char* name);
+    void freeSymbolTable();
+    int getParamCount(node* paramList);
+    int moreThanOneMain(char* name);
+    int isMainExists();
+    int isVarDeclaredInScope(const char* name);
+    void pushScope();
+    void popScope();
+    char* inferExprType(node* expr);
+    int validateReturnType(node* body, const char* expectedType);
+    int isPointerType(const char* type);
+    int registerParams(node* plist);
+    int containsReturn(node* body);  
+    void generateCode(node *root);
+    void dumpCode(FILE *out);
+
+
+    int mainDeclared = 0;
+    int scopeDepth = 0;
+    static node *g_lastParamList = NULL;
+
+
+%}
+
+%union {
+    int  intVal;
+    float realVal;
+    char  charVal;
+    char* stringVal;
+    struct node* nodePtr;
+}
+
+%token <intVal> INT_LIT
+%token <realVal> REAL_LIT
+%token <charVal> CHAR_LIT
+%token <stringVal> STRING_LIT IDENT
+
+%token BOOL CHAR INT REAL STRING TYPE
+%token INTPTR CHARPTR REALPTR  
+%token IF ELIF ELSE WHILE FOR DO VARIABLE
+%token <intVal> PAR
+%token RETURN RETURNS NULLL
+%token T_BEGIN END
+%token DEF CALL
+%token AND NOT OR
+%token EQL NOTEQL GREATEREQL LESSEQL GREATER LESS
+%token ASSIGN PLUS MINUS MULTI DIV ADDRESS LENGTH
+%token TRUE FALSE
+
+%left  OR
+%left  AND
+%left  EQL NOTEQL
+%left  GREATEREQL LESSEQL GREATER LESS
+%left  PLUS MINUS
+%left  MULTI DIV
+%right NOT
+%right ADDRESS
+%nonassoc LENGTH_ABS
+%nonassoc UMINUS
+%nonassoc DEREF
+%nonassoc  ELSELESS     
+%nonassoc  ELSE
+
+
+%type <nodePtr> code functions function params param_list params_reset
+%type <nodePtr> param var dec_list dec type literal
+%type <nodePtr> ident_entry idents_list
+%type <nodePtr> statements state assign_state
+%type <nodePtr> if_state while_state do_while_state
+%type <nodePtr> for_state for_h advance_exp 
+%type <nodePtr> bl_state rt_state func_call_state
+%type <nodePtr> func_call exp_list expression 
+
+
+
+%%
+/* ----------------------------  Root Rule  -------------------------------*/
+code :
+    functions {
+        ASTRoot = mknode("CODE", $1, NULL);
+    }
+;
+
+
+/* --------------------------- Functions list -----------------------------*/
+functions :
+      function functions                   { $$ = mknode("FUNCS",$1,$2); }
+    |  function                              { $$ = $1; }
+    ;
+
+/* ------------------------ Single function rule -------------------------*/
+scope_marker
+    : %empty {                                          /* begin action */
+          pushScope();
+
+          /* ---------- register the parameters ---------- */
+          if (g_lastParamList && registerParams(g_lastParamList)) {
+              yyerror("Semantic Error: Duplicate parameter name.");
+              YYABORT;
+          }
+      }
+;
+
+function :
+    DEF IDENT '(' params ')' ':' RETURNS type var scope_marker T_BEGIN statements END
+    {
+        if (moreThanOneMain($2)) YYABORT;
+
+        if (strcmp($2, "_main_") == 0) {
+            if ($4 != NULL) {
+                yyerror("Semantic Error: '_main_' function must not take parameters.");
+                YYABORT;
+            }
+            if (strcmp($8->token, "void") != 0) {
+                yyerror("Semantic Error: '_main_' function must not return a value.");
+                YYABORT;
+            }
+        }
+
+        char* paramTypes[MAX_PARAMS];
+        int paramCount = 0;
+
+        node* curParam = $4;
+
+        while (curParam && paramCount < MAX_PARAMS) {
+            if (strcmp(curParam->token, "PARAMS") == 0) {
+                node* single = curParam->left;
+                if (single && strcmp(single->token, "PARAM") == 0 && single->left) {
+                    char* rawType = single->left->token;
+                    char* lowered = strdup(rawType);
+                    for (char* p = lowered; *p; p++) *p = tolower(*p);
+                    paramTypes[paramCount++] = lowered;
+                }
+                curParam = curParam->right;
+            } else if (strcmp(curParam->token, "PARAM") == 0) {
+                char* rawType = curParam->left->token;
+                char* lowered = strdup(rawType);
+                for (char* p = lowered; *p; p++) *p = tolower(*p);
+                paramTypes[paramCount++] = lowered;
+                break;
+            } else {
+                break;
+            }
+        }
+        
+        char* returnType = strdup($8->token);
+        for (char* p = returnType; *p; p++) *p = tolower(*p);
+
+        if (strcmp(returnType, "string") == 0) 
+        {
+        yyerror("Semantic Error: Functions cannot return type 'string'.");
+        YYABORT;
+        }
+
+        // Rule 9: Function must return correct type and must return at all
+        if (!containsReturn($12)) {
+            yyerror("Semantic Error: Function must contain a return statement.");
+            YYABORT;
+        }
+
+        if (!validateReturnType($12, returnType)) {
+            YYABORT;
+        }
+
+
+        if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) 
+        {
+            yyerror("Semantic Error: Function already declared in the same scope.");
+            YYABORT;
+        }
+
+        node* idN = mknode($2, NULL, NULL);
+        node* paramsN = mknode("PARAMS", $4, NULL);
+        node* returnsN = mknode("RETURNS", $8, NULL);
+        node* bodyN = mknode("BODY", $9, $12);  // $9 = var, $12 = statements
+        node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
+        $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
+        popScope();
+
+    }
+
+  | DEF IDENT '(' params ')' ':' var scope_marker T_BEGIN statements END
+    {
+        if (moreThanOneMain($2)) YYABORT;
+
+        if (strcmp($2, "_main_") == 0) {
+            if ($4 != NULL) {
+                yyerror("Semantic Error: '_main_' function must not take parameters.");
+                YYABORT;
+            }
+        }
+
+        char* paramTypes[MAX_PARAMS];
+        int paramCount = 0;
+        node* curParam = $4;
+
+        while (curParam && paramCount < MAX_PARAMS) {
+            if (strcmp(curParam->token, "PARAMS") == 0) {
+                node* single = curParam->left;
+                if (single && strcmp(single->token, "PARAM") == 0 && single->left) {
+                    char* rawType = single->left->token;
+                    char* lowered = strdup(rawType);
+                    for (char* p = lowered; *p; p++) *p = tolower(*p);
+                    paramTypes[paramCount++] = lowered;
+                }
+                curParam = curParam->right;
+            } else if (strcmp(curParam->token, "PARAM") == 0) {
+                char* rawType = curParam->left->token;
+                char* lowered = strdup(rawType);
+                for (char* p = lowered; *p; p++) *p = tolower(*p);
+                paramTypes[paramCount++] = lowered;
+                break;
+            } else {
+                break;
+            }
+        }
+        char* returnType = strdup("void");
+
+        if (insertSymbol($2, FUNC, returnType, paramCount, "global", paramTypes)) {
+            yyerror("Semantic Error: Function already declared in the same scope.");
+            YYABORT;
+        }
+    
+        if (containsReturn($10)) {
+            yyerror("Semantic Error: Procedure must not contain return statements.");
+            YYABORT;
+        }
+        node* idN = mknode($2, NULL, NULL);
+        node* paramsN = mknode("PARAMS", $4, NULL);
+        node* bodyN = mknode("BODY", $7, $10);  // $7 = var, $10 = statements
+        $$ = mknode("PROC", idN, mknode("PROC_IN", paramsN, bodyN));
+        popScope();
+
+    }
+;
+
+
+/* --------------------- param declarations ---------------------------*/
+
+params_reset
+    : /* empty */   %empty        { paramOrderIdx = 0; }
+    ;
+
+params
+    : /* empty */                       { $$ = NULL;            g_lastParamList = NULL; }
+    | params_reset param_list           { $$ = $2;              g_lastParamList = $2;   }
+;
+
+
+param_list :
+    param                           { $$ = $1; }
+    | param ';' param_list        { $$ = mknode("PARAMS",$1,$3); }
+    ;
+
+param :
+        PAR type ':' IDENT
+        {
+            if ($1 != paramOrderIdx + 1) {
+                yyerror("Semantic Error: parameters must be in sequential order (par1, par2, …).");
+                YYABORT;
+            }
+            paramOrderIdx = $1;
+
+            $$ = mknode("PARAM", $2, mknode($4, NULL, NULL));
+        }
+;
+
+
+/* -----------------------  type (atomic) ---------------------------------*/
+type : 
+      INT         { $$ = mknode("INT",NULL,NULL);  }
+    | CHAR        { $$ = mknode("CHAR",NULL,NULL); }
+    | BOOL        { $$ = mknode("BOOL",NULL,NULL); }
+    | STRING      { $$ = mknode("STRING",NULL,NULL);}
+    | REAL        { $$ = mknode("REAL",NULL,NULL); }
+    | CHARPTR     { $$ = mknode("CHARPTR",NULL,NULL);}
+    | INTPTR      { $$ = mknode("INTPTR",NULL,NULL);}
+    | REALPTR     { $$ = mknode("REALPTR",NULL,NULL);}
+    ;
+
+/* ------------ id-list helpers -------------------------------------*/
+ident_entry
+    : IDENT ':' literal
+        { $$ = mknode("VAR_ASSIGN",
+                      mknode("IDENT", mknode($1,NULL,NULL), NULL),
+                      $3); }
+    | IDENT
+        { $$ = mknode("VAR_DECL",
+                      mknode("IDENT", mknode($1,NULL,NULL), NULL),
+                      NULL); }
+    | IDENT '[' INT_LIT ']'
+        { char buf[32]; sprintf(buf, "%d", $3);
+          $$ = mknode("ARRAY_DECL",
+                      mknode("IDENT", mknode($1,NULL,NULL), NULL),
+                      mknode(buf, NULL, NULL)); }
+    | IDENT '[' INT_LIT ']' ':' STRING_LIT
+        { char buf[32]; sprintf(buf, "%d", $3);
+          $$ = mknode("ARRAY_INIT",
+                      mknode("ARRAY_DECL",
+                             mknode("IDENT", mknode($1,NULL,NULL), NULL),
+                             mknode(buf, NULL, NULL)),
+                      mknode($6, NULL, NULL)); }
+    ;
+
+idents_list
+    : ident_entry
+        { $$ = $1; }
+    | ident_entry ',' idents_list
+        { $$ = mknode("ID_LIST", $1, $3); }
+    ;
+
+
+literal :
+          INT_LIT      { char ibuf[32]; sprintf(ibuf,"%d",$1); $$ = mknode("INT", mknode(ibuf,NULL,NULL), NULL); }
+        | TRUE         { $$ = mknode("BOOL", mknode("true", NULL, NULL), NULL); }
+        | FALSE        { $$ = mknode("BOOL", mknode("false", NULL, NULL), NULL); }
+        | CHAR_LIT     { char cbuf[2] = {$1,'\0'}; $$ = mknode("CHAR", mknode(cbuf,NULL,NULL), NULL); }
+        | STRING_LIT   { $$ = mknode("STRING", mknode($1, NULL, NULL), NULL); }
+        | REAL_LIT     { char r[64]; sprintf(r,"%f",$1);
+                        $$ = mknode("REAL", mknode(r,NULL,NULL), NULL); }
+        | NULLL        { $$ = mknode("NULL", NULL, NULL); }
+        ;
+
+/* -------------------  Local‑var block  ----------------------------------*/
+var :         %empty                             
+    { $$ = NULL; }
+    | VARIABLE dec_list                { $$ = mknode("VAR",$2,NULL); }
+    ;
+
+dec_list : 
+    dec                        { $$ = $1; }
+    | dec dec_list        { $$ = mknode("DECS",$1,$2); }
+    ;
+
+
+dec :
+     TYPE type ':' idents_list ';'
+       {  /* ----- identical semantic loop, but walk ID_LIST chain ----- */
+           node* decl = $4;
+           while (decl) {
+               node* single = (strcmp(decl->token,"ID_LIST")==0)
+                              ? decl->left : decl;
+
+               if (single && (strcmp(single->token,"VAR_DECL"  )==0 ||
+                              strcmp(single->token,"VAR_ASSIGN")==0 ||
+                              strcmp(single->token,"ARRAY_DECL")==0 ||
+                              strcmp(single->token,"ARRAY_INIT")==0))
+               {
+                node* idNode = NULL;
+
+                if (strcmp(single->token,"ARRAY_INIT")==0)
+                        idNode = single->left->left;   /* IDENT is two hops down  */
+                else idNode = single->left;         /* IDENT is one hop down   */
+
+                   if (idNode && strcmp(idNode->token,"IDENT")==0 && idNode->left) {
+                       char* vname = idNode->left->token;
+                       if (insertSymbol(vname, VAR, $2->token, 0, "block", NULL)) {
+                           yyerror("Semantic Error: Variable already declared in this scope.");
+                           YYABORT;
+                       }
+                   }
+               }
+               decl = (strcmp(decl->token,"ID_LIST")==0) ? decl->right : NULL;
+           }
+           $$ = mknode("DECL", $2, $4);
+       }
+
+
+/* ------------------------- Statements seq. ------------------------------*/
+statements : %empty
+     {$$ = mknode("", NULL,NULL);}
+            | state {$$ = $1;}
+            | state statements {$$ = mknode("statements", $1, $2);}
+            ;
+
+
+/* --------------------------- Single statement ---------------------------*/
+state :
+            function {$$=$1;}
+            | assign_state {$$ = $1;}
+            | if_state {$$ = $1;}
+            | while_state {$$ = $1;}
+            | for_state {$$ = $1;}
+            | do_while_state {$$ = $1;}
+            | bl_state {$$ = $1;}
+            | rt_state {$$ = $1;}
+            | func_call_state {$$ = $1;}
+            | expression ';' { $$ = $1; }
+
+        ;
+/* ------------------------- Assignment variants --------------------------*/
+assign_state
+    /* 14‑A  —  x = expr ;  (types must match) */
+  : IDENT ASSIGN expression ';'
+    {
+        Symbol* lvar = lookupSymbol($1);          /* LHS variable */
+        if (!lvar) {
+            char msg[128];
+            sprintf(msg,
+                    "Semantic Error: Variable '%s' used before declaration.", $1);
+            yyerror(msg);
+            YYABORT;
+        }
+
+        char* lhsType = strdup(lvar->returnType); // normalize lhs type too
+        for (char* p = lhsType; *p; ++p) *p = tolower(*p);
+        char* rhsTypeA = inferExprType($3);
+
+        if (strcmp(lhsType, rhsTypeA) != 0) {
+            char msg[256];
+            sprintf(msg,
+                    "Semantic Error: Cannot assign type '%s' to variable '%s' of type '%s'.",
+                    rhsTypeA, $1, lhsType);
+            yyerror(msg);
+            YYABORT;
+        }
+
+        $$ = mknode("assign", mknode($1, NULL, NULL), $3);
+    }
+
+    /* 14‑B  —  s[i] = char‑literal or expression‑of‑type‑char */
+  | IDENT '[' expression ']' ASSIGN CHAR_LIT ';'
+    {
+        Symbol* var = lookupSymbol($1);
+        if (!var || strcasecmp(var->returnType, "string") != 0) {
+            yyerror("Semantic Error: Only string variables support indexing with [].");
+            YYABORT;
+        }
+        char buf[2] = { $6 , '\0'};
+        $$ = mknode("array_assign",
+                    mknode($1, $3, NULL),
+                    mknode("CHAR", mknode(buf,NULL,NULL), NULL));
+    }
+
+  | IDENT '[' expression ']' ASSIGN expression ';'
+    {
+        Symbol* var = lookupSymbol($1);
+        if (!var || strcasecmp(var->returnType, "string") != 0) {
+            yyerror("Semantic Error: Only string variables support indexing with [].");
+            YYABORT;
+        }
+        char* rhsTypeB = inferExprType($6);
+        if (strcmp(rhsTypeB, "char") != 0) {
+            yyerror("Semantic Error: String cells can only hold characters.");
+            YYABORT;
+        }
+        $$ = mknode("array_assign", mknode($1, $3, NULL), $6);
+    }
+
+    /* 14‑C  —  x = null ;   (LHS must be a pointer) */
+    | IDENT ASSIGN NULLL ';'
+    {
+        Symbol* var = lookupSymbol($1);
+        if (!var) {
+    yyerror("Semantic Error: Variable used before declaration.");
+    YYABORT;
+    }
+
+    char* lhsType = strdup(var->returnType);
+    for (char* p = lhsType; *p; ++p) *p = tolower(*p);
+
+    if (!isPointerType(lhsType)) 
+    {
+        yyerror("Semantic Error: Only pointer variables can be assigned null.");
+        YYABORT;
+    }
+        $$ = mknode("null_assign",
+                    mknode($1, NULL, NULL),
+                    mknode("NULL", NULL, NULL));
+    }
+    ;
+
+    | MULTI expression ASSIGN expression ';'
+    {
+        char* lhsType = inferExprType($2);  // the pointer
+        char* rhsType = inferExprType($4);  // the value to assign
+
+        if (!isPointerType(lhsType)) {
+            yyerror("Semantic Error: Left-hand side must be a pointer.");
+            YYABORT;
+        }
+
+        if ((strcasecmp(lhsType, "intptr") == 0 && !isInt(rhsType)) ||
+            (strcasecmp(lhsType, "realptr") == 0 && !isReal(rhsType)) ||
+            (strcasecmp(lhsType, "charptr") == 0 && !isChar(rhsType))) {
+            yyerror("Semantic Error: Dereferenced pointer type mismatch.");
+            YYABORT;
+        }
+
+        $$ = mknode("deref_assign", $2, $4);  // $2 is expression for pointer, not just IDENT
+    }
+
+
+/* -----------------------------  IF / ELIF / ELSE ------------------------*/
+if_state :
+    IF expression ':' bl_state  %prec ELSELESS
+    {
+        if (strcmp(inferExprType($2), "bool") != 0) {
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("if", $2, $4);
+    }
+
+  | IF expression ':' bl_state ELSE ':' bl_state
+    {
+        if (strcmp(inferExprType($2), "bool") != 0) {
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
+    }
+
+  | IF expression ':' bl_state ELIF expression ':' bl_state
+    {
+        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
+    }
+
+  | IF expression ':' bl_state ELIF expression ':' bl_state ELSE ':' bl_state
+    {
+        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL)))));
+    };
+
+/* -----------------------------  WHILE loop ------------------------------*/
+while_state :
+    WHILE expression ':' bl_state
+    {
+        if (strcmp(inferExprType($2), "bool") != 0) {
+            yyerror("Semantic Error: WHILE condition must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("while", $2, $4);
+    };
+/* ---------------------------  DO‑WHILE loop -----------------------------*/
+do_while_state :
+    DO ':' bl_state WHILE expression ';'
+    {
+        if (strcmp(inferExprType($5), "bool") != 0) {
+            yyerror("Semantic Error: DO-WHILE condition must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("do_while", $3, mknode("condition", $5, NULL));
+    };
+
+/* -----------------------------  FOR loop --------------------------------*/
+for_state :
+     FOR for_h ':' bl_state            {
+          $$ = mknode("for",$2,$4); }
+    | FOR for_h ':' var bl_state        {
+          $$ = mknode("for",$2,
+                      mknode("block",$5,$4)); }
+    ;
+
+for_h :
+    '(' IDENT ASSIGN expression ';'
+         expression ';'
+         advance_exp ')'
+    {
+        if (strcmp(inferExprType($6), "bool") != 0) {
+            yyerror("Semantic Error: FOR condition must be of type 'bool'.");
+            YYABORT;
+        }
+        $$ = mknode("for_header",
+                    mknode("init", mknode($2, NULL, NULL), $4),
+                    mknode("loop", $6, $8));
+    };
+
+
+advance_exp :
+     IDENT ASSIGN expression                 {
+          $$ = mknode("update",
+                      mknode($1,NULL,NULL),$3); }
+    ;
+
+
+/* -----------------------------  Return  ---------------------------------*/
+rt_state :
+    RETURN expression ';'                        { $$ = mknode("return",$2,NULL); }
+    ;
+
+/* --------------------  BEGIN … END compound‑statement -------------------*/
+bl_state :
+    T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $3, NULL); }
+  | var T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $4, $1); }
+
+
+
+
+/* -------------------------  Function‑call stmt --------------------------*/
+func_call_state :
+     func_call ';'                            { $$ = $1; }
+    | IDENT ASSIGN func_call ';'          {
+          $$ = mknode("assign",
+                      mknode($1,NULL,NULL),$3); }
+    ;
+
+/* -------------------------  Function call expr --------------------------*/
+func_call :
+      CALL IDENT '(' ')' {
+          Symbol* f = lookupSymbol($2);
+          if (!f || f->type != FUNC) {
+              yyerror("Semantic Error: Function called before definition.");
+              YYABORT;
+          }
+          $$ = mknode("call", mknode($2,NULL,NULL), NULL);
+      }
+
+    | CALL IDENT '(' exp_list ')' {
+    Symbol* f = lookupSymbol($2);
+    if (!f || f->type != FUNC) {
+        yyerror("Semantic Error: Function called before definition.");
+        YYABORT;
+    }
+
+    // Count actual parameters
+    int actualCount = 1;
+    node* temp = $4;
+    while (temp && strcmp(temp->token, "exp_list") == 0) {
+        actualCount++;
+        temp = temp->right;
+    }
+
+    if (actualCount != f->paramCount) {
+        char msg[128];
+        sprintf(msg, "Semantic Error: Function '%s' expects %d arguments but got %d.", f->name, f->paramCount, actualCount);
+        yyerror(msg);
+        YYABORT;
+    }
+
+    // Rule 8: Type check each parameter
+    temp = $4;
+    int index = 0;
+    while (temp && index < f->paramCount) {
+        node* exprNode = (strcmp(temp->token, "exp_list") == 0) ? temp->left : temp;
+        char* actualType = inferExprType(exprNode);
+        char* expectedType = f->paramTypes[index];
+
+        if (strcmp(actualType, expectedType) != 0) {
+            char msg[256];
+            sprintf(msg, "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
+                    index + 1, f->name, actualType, expectedType);
+            yyerror(msg);
+            YYABORT;
+        }
+
+        temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
+        index++;
+    }
+
+    $$ = mknode("call", mknode($2,NULL,NULL), $4);
+}
+
+
+/* --------------------------  Expression list ----------------------------*/
+exp_list :
+      expression                                   { $$ = $1; }
+    | expression ',' exp_list                     { $$ = mknode("exp_list",$1,$3); }
+    ;
+
+/* ---------------------------  Expressions  ------------------------------*/
+expression :
+    /* ---- primary ----*/
+    /* ---- primary ----*/
+    INT_LIT
+        { char ibuf[32]; sprintf(ibuf,"%d",$1);
+        $$ = mknode("INT", mknode(strdup(ibuf),NULL,NULL), NULL); }
+
+    | REAL_LIT
+        { char rbuf[64]; sprintf(rbuf,"%f",$1);
+        $$ = mknode("REAL", mknode(strdup(rbuf),NULL,NULL), NULL); }
+
+    | CHAR_LIT
+        { char cbuf[2] = { (char)$1, '\0' };
+        $$ = mknode("CHAR", mknode(strdup(cbuf),NULL,NULL), NULL); }
+
+    | STRING_LIT
+        { $$ = mknode("STRING", mknode(strdup($1),NULL,NULL), NULL); }
+
+    | IDENT {
+        if (!isVarDeclaredInScope($1)) {
+            char msg[128];
+            sprintf(msg, "Semantic Error: Variable '%s' used before declaration.", $1);
+            yyerror(msg);
+            YYABORT;
+        }
+        $$ = mknode($1,NULL,NULL);
+    }
+
+    /* ---- arithmetic / logical binary ----*/
+    | expression PLUS   expression  { $$ = mknode("+",$1,$3); }
+    | expression MINUS  expression  { $$ = mknode("-",$1,$3); }
+    | expression MULTI   expression  { $$ = mknode("*",$1,$3); }
+    | expression DIV    expression  { $$ = mknode("/",$1,$3); }
+
+    /* ---- unary ----*/
+    | MINUS     expression  %prec UMINUS { $$ = mknode("unary-",$2,NULL); }
+    | ADDRESS expression
+    {
+        char* baseType = inferExprType($2);
+
+        if (isInt(baseType)) {
+            $$ = mknode("&", $2, NULL);
+        }
+        else if (isReal(baseType)) {
+            $$ = mknode("&", $2, NULL);
+            $$->token = strdup("realptr");
+        }
+        else if (isChar(baseType)) {
+            $$ = mknode("&", $2, NULL);
+            $$->token = strdup("charptr");
+        }
+        else {
+            yyerror("Semantic Error: '&' operator allowed only on int, real, char or string[i].");
+            YYABORT;
+        }
+    }
+
+    
+    | NOT expression              { $$ = mknode("not", $2, NULL); }
+    /* --- *IDENT  ----------------------------------------*/
+    | MULTI IDENT  %prec DEREF
+    {
+        Symbol* v = lookupSymbol($2);
+        if (!v){
+            yyerror("Semantic Error: Variable used before declaration.");
+            YYABORT;
+        }
+        char* t = v->returnType;
+        for(char*p=t;*p;++p)*p=tolower(*p);
+
+        if (!isPointerType(t)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            YYABORT;
+        }
+        $$ = mknode("deref", mknode($2,NULL,NULL), NULL);
+    }
+
+    /* --- *expr  -----------------------------------------*/
+    | MULTI expression %prec DEREF
+    {
+        char* t = inferExprType($2);
+
+        if (!isPointerType(t)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            YYABORT;
+        }
+        $$ = mknode("unary*", $2, NULL);
+    }
+
+
+    /* ---- grouping ----*/
+    | '(' expression ')'            { $$ = $2; }
+    | LENGTH expression LENGTH    %prec LENGTH_ABS
+                                  { $$ = mknode("|", $2, NULL); }
+
+
+    /* ---- comparison ----*/
+    | expression EQL expression      { $$ = mknode("==",$1,$3); }
+    | expression NOTEQL expression      { $$ = mknode("!=",$1,$3); }
+    | expression GREATEREQL expression      { $$ = mknode(">=",$1,$3); }
+    | expression LESSEQL expression      { $$ = mknode("<=",$1,$3); }
+    | expression GREATER expression      { $$ = mknode(">", $1,$3); }
+    | expression LESS expression      { $$ = mknode("<", $1,$3); }
+
+     /* ---- array index ----*/
+
+    | IDENT '[' expression ']' {
+    if (!isVarDeclaredInScope($1)) {
+        char msg[128];
+        sprintf(msg, "Semantic Error: Variable '%s' used before declaration.", $1);
+        yyerror(msg);
+        YYABORT;
+    }
+
+    // Rule 12: index must be of type int
+    char* indexType = inferExprType($3);
+    if (strcmp(indexType, "int") != 0) {
+        yyerror("Semantic Error: Index expression must be of type 'int'.");
+        YYABORT;
+    }
+
+    // Rule 13: only string can be indexed
+    Symbol* varSym = lookupSymbol($1);
+    if (!varSym || varSym->type != VAR || strcasecmp(varSym->returnType, "string") != 0) {
+        yyerror("Semantic Error: Only variables of type 'string' can be indexed using '[]'.");
+        YYABORT;
+    }
+
+    $$ = mknode("index", mknode($1, NULL, NULL), $3);
+}
+
+    /* ---- logical ----*/
+    | expression AND expression     { $$ = mknode("and",$1,$3); }
+    | expression OR  expression     { $$ = mknode("or",$1,$3); }
+
+    | TRUE               { $$ = mknode("BOOL", mknode("TRUE", NULL, NULL), NULL); }
+    | FALSE              { $$ = mknode("BOOL", mknode("FALSE", NULL, NULL), NULL); }
+    | LENGTH IDENT LENGTH  %prec LENGTH_ABS
+      { $$ = mknode("|", mknode($2,NULL,NULL), NULL); }
+
+
+    /* ---- nested call ----*/
+    | func_call                 { $$ = $1; }
+    ;
+%%  /* ===================  C‑code section ================================*/
+
+#include "lex.yy.c"
+
+/* ---------- helpers for type checking (added) ---------- */
+int  isInt   (const char* t){ return strcasecmp(t,"int"  )==0; }
+int  isReal  (const char* t){ return strcasecmp(t,"real" )==0; }
+int  isBool  (const char* t){ return strcasecmp(t,"bool" )==0; }
+int  isChar  (const char* t){ return strcasecmp(t,"char" )==0; }
+int  isStr   (const char* t){ return strcasecmp(t,"string")==0; }
+
+int  isNumeric(const char* t){ return isInt(t)||isReal(t); }
+
+int  samePtrType(const char* a,const char* b){
+    return (isPointerType(a)&&isPointerType(b)&&strcasecmp(a,b)==0);
+}
+
+/* ----------------------------  main  ------------------------------------*/
+int main(void)
+{
+    yyparse();
+
+    if (isMainExists()) return 1;
+
+    generateCode(ASTRoot);     
+    
+    dumpCode(stdout); 
+
+    printTree(ASTRoot, 0);  
+
+    return 0;
+}
+
+
+/* ----------------------  AST helper functions ---------------------------*/
+ node *mknode(char *token, node *left, node *right)
+{
+    node *n = (node*)malloc(sizeof(node));
+    if (!n) { fprintf(stderr,"alloc node failed\n"); exit(1); }
+
+    n->token = strdup(token);  /* deep‑copy string */
+    n->left  = left;
+    n->right = right;
+    return n;
+}
+
+ void printTabs(int indent) {
+    for (int i = 0; i < indent; i++) {
+        printf("  ");
+    }
+}
+
+
+void printTree(node *t, int indent) {
+    if (!t) return;
+
+    const char *tok = t->token;
+    if (strcmp(tok, "FUNCTION") == 0 || strcmp(tok, "PROC") == 0) tok = "FUNC";
+    else if (strcmp(tok, "RETURNS") == 0) tok = "RET";
+    else if (strcmp(tok, "RETURN") == 0) tok = "RETURN";
+
+    printTabs(indent);
+    printf("(%s", tok);
+
+    for (node *c = t->left; c; c = c->right) {
+        printf("\n");
+        printTree(c, indent + 1);
+    }
+
+    printf(")\n");
+}
+/* -------------------------  error handler -------------------------------*/
+int yyerror(const char *s)
+{
+    fprintf(stderr,"Error: %s at line %d near '%s'\n",
+            s, yylineno, yytext);
+            semanticErrSeen = 1;
+    return 0;
+}
+
+
+/* -------------------------  Sybol Table Funcntions -------------------------------*/
+
+int insertSymbol(char* name, SymbolType type, char* returnType, int paramCount, const char* scope, char* paramTypes[]) {
+    Symbol* current = symbolTable;
+    while (current != NULL) {
+        // Only disallow redefinition in the same scope depth
+        if (strcmp(current->name, name) == 0 && current->scopeDepth == scopeDepth) {
+            return 1;
+        }
+        current = current->next;
+    }
+
+    Symbol* newSym = (Symbol*)malloc(sizeof(Symbol));
+    newSym->name = strdup(name);
+    newSym->type = type;
+    newSym->returnType = returnType ? strdup(returnType) : NULL;
+    newSym->paramCount = paramCount;
+     for (int i = 0; i < paramCount; i++) {
+        newSym->paramTypes[i] = strdup(paramTypes[i]);
+    }
+    newSym->scope = strdup(scope);
+    newSym->scopeDepth = scopeDepth;
+    newSym->next = symbolTable;
+    symbolTable = newSym;
+
+    return 0;
+}
+
+Symbol* lookupSymbol(char* name) {
+    Symbol* current = symbolTable;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+void freeSymbolTable() {
+    Symbol* current = symbolTable;
+    while (current != NULL) {
+        Symbol* temp = current;
+        current = current->next;
+        free(temp->name);
+        if (temp->returnType) free(temp->returnType);
+        free(temp);
+    }
+    symbolTable = NULL;
+}
+
+int getParamCount(node* paramList) {
+    int count = 0;
+    node* current = paramList;
+    while (current) {
+        count++;
+        current = current->right;
+    }
+    return count;
+}
+
+
+/* -------------------------  Semantic funcntions -------------------------------*/
+
+int moreThanOneMain(char* name) {
+    if (strcmp(name, "_main_") == 0) {
+        if (mainDeclared) {
+            yyerror("Semantic Error: Multiple declarations of '_main_' function.");
+            return 1;  // signal failure
+        } else {
+            mainDeclared = 1;
+        }
+    }
+    return 0;  // success
+}
+
+
+int isMainExists()
+{
+    if (semanticErrSeen)          
+        return 0;                 
+
+    if (!mainDeclared) {
+        fprintf(stderr,
+                "Semantic Error: Missing '_main_' function.\n");
+        return 1;
+    }
+    return 0;
+}
+
+
+void pushScope() {
+    scopeDepth++;
+}
+
+/* ------------  popScope --------------- */
+void popScope()
+{
+    Symbol **current = &symbolTable;
+    while (*current) 
+    {
+        Symbol *s = *current;
+
+       if (s->scopeDepth == scopeDepth && s->type == VAR) {
+            *current = s->next;
+            free(s->name);
+            if (s->returnType) free(s->returnType);
+            free(s);
+            continue;                 
+        }
+        current = &s->next;
+    }
+    scopeDepth--;
+}
+
+int isVarDeclaredInScope(const char* name) {
+    Symbol* current = symbolTable;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0 && current->type == VAR) {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+
+
+char* inferExprType(node* expr) 
+{
+    if (!expr) {
+        printf("inferExprType: ERROR - received NULL expr\n");
+        return "unknown";
+    }
+
+    if (!expr->token) {
+        printf("inferExprType: ERROR - expr has NULL token\n");
+        return "unknown";
+    }
+
+    // Direct literal types based on AST node labels
+    if (strcmp(expr->token,"INT"   )==0) return "int";
+    if (strcmp(expr->token,"REAL"  )==0) return "real";
+    if (strcmp(expr->token,"CHAR"  )==0) return "char";
+    if (strcmp(expr->token,"STRING")==0) return "string";
+    if (strcmp(expr->token,"BOOL"  )==0) return "bool";
+    if (strcmp(expr->token,"NULL"  )==0) return "null";
+    if (strcmp(expr->token,"TRUE")==0 || strcmp(expr->token,"FALSE")==0)
+    return "bool";
+
+    Symbol* sym = lookupSymbol(expr->token);
+    if (sym && sym->type==VAR && sym->returnType){
+        char* norm=strdup(sym->returnType);
+        for(char*p=norm;*p;++p)*p=tolower(*p);
+        return norm;
+    }
+
+    char* lt = expr->left  ? inferExprType(expr->left ) : NULL;
+    char* rt = expr->right ? inferExprType(expr->right) : NULL;
+
+    /* + - * / */
+    if (strcmp(expr->token,"+")==0||
+        strcmp(expr->token,"-")==0||
+        strcmp(expr->token,"*")==0||
+        strcmp(expr->token,"/")==0){
+        if (!isNumeric(lt)||!isNumeric(rt)){
+            yyerror("Semantic Error: arithmetic operators require int/real.");
+            return "unknown";
+        }
+        return (isInt(lt)&&isInt(rt)) ? "int" : "real";
+    }
+
+    /* and or */
+    if (strcmp(expr->token,"and")==0||strcmp(expr->token,"or")==0){
+        if (!isBool(lt)||!isBool(rt)){
+            yyerror("Semantic Error: logical operators require bool.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* > < >= <= */
+    if (strcmp(expr->token,">")==0||strcmp(expr->token,"<")==0||
+        strcmp(expr->token,">=")==0||strcmp(expr->token,"<=")==0){
+        if (!isNumeric(lt)||!isNumeric(rt)){
+            yyerror("Semantic Error: comparison requires int/real.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* == != */
+    if (strcmp(expr->token,"==")==0||strcmp(expr->token,"!=")==0){
+        int ok =
+            (isInt(lt)&&isInt(rt))   ||
+            (isReal(lt)&&isReal(rt)) ||
+            (isBool(lt)&&isBool(rt)) ||
+            (isChar(lt)&&isChar(rt)) ||
+            samePtrType(lt,rt);
+        if (!ok){
+            yyerror("Semantic Error: illegal types for equality operator.");
+            return "unknown";
+        }
+        return "bool";
+    }
+
+    /* |expr| */
+    if (strcmp(expr->token,"|")==0){
+        if (!isStr(lt)){
+            yyerror("Semantic Error: | | expects string.");
+            return "unknown";
+        }
+        return "int";
+    }
+
+    /* string[i] */
+    if (strcmp(expr->token, "index") == 0) 
+    {
+    char* baseName = expr->left->token;  // s in s[2]
+    Symbol* sym = lookupSymbol(baseName);
+    if (sym && sym->type == VAR && strcasecmp(sym->returnType, "string") == 0) {
+        return "char";  // string[i] yields a char
+    }
+    return "unknown";
+    }
+
+    /* !expr */
+    /* not / !  (unary NOT) */
+    if (strcmp(expr->token,"not")==0 || strcmp(expr->token,"!")==0){
+    if (!isBool(lt)){
+        yyerror("Semantic Error: !/not expects bool.");
+        return "unknown";
+    }
+    return "bool";
+    }
+
+
+   if (strcmp(expr->token,"&")==0){
+    char* operandType = inferExprType(expr->left); 
+
+    if (isInt(operandType))      return "intptr";
+    if (isReal(operandType))     return "realptr";
+    if (isChar(operandType))     return "charptr";
+    yyerror("Semantic Error: '&' operator allowed only on int, real, char or string[i].");
+    return "unknown";
+}
+
+     /* *expr  -----------------------------------------------------*/
+    if (strcmp(expr->token,"deref")==0 || strcmp(expr->token,"unary*")==0){
+        char* ptrT = inferExprType(expr->left ? expr->left : expr->right);
+        if (!isPointerType(ptrT)){
+            yyerror("Semantic Error: '*' operator can only be applied to pointers.");
+            return "unknown";
+        }
+        if (strcasecmp(ptrT,"intptr" )==0) return "int";
+        if (strcasecmp(ptrT,"realptr")==0) return "real";
+        if (strcasecmp(ptrT,"charptr")==0) return "char";
+        return "unknown";   
+    }
+    // Function call inference
+    if (strcmp(expr->token, "call") == 0) {
+        if (!expr->left || !expr->left->token) {
+            return "unknown";
+        }
+        char* fname = expr->left->token;
+        Symbol* f = lookupSymbol(fname);
+        if (f && f->type == FUNC && f->returnType) {
+            char* lowered = strdup(f->returnType);
+            for (char* p = lowered; *p; ++p) *p = tolower(*p);
+            return lowered;
+        }
+        return "unknown";
+    }
+
+    printf("inferExprType: WARNING – unknown token %s\n",expr->token);
+    return "unknown";
+}
+
+int validateReturnType(node *body, const char *expectedType)
+{
+    if (!body) return 1;
+
+    if (strcmp(body->token, "FUNCTION") == 0 ||
+        strcmp(body->token, "PROC")     == 0) {
+        return 1;   /* do NOT look inside – it will be validated later */
+    }
+
+    if (strcmp(body->token, "return") == 0) {
+        char *actualType = inferExprType(body->left);
+        if (strcmp(actualType, expectedType) != 0) {
+            char msg[256];
+            sprintf(msg,
+                "Semantic Error: Return type is '%s' but expected '%s'.",
+                actualType, expectedType);
+            yyerror(msg);
+            return 0;
+        }
+    }
+
+    if (!validateReturnType(body->left , expectedType)) return 0;
+    if (!validateReturnType(body->right, expectedType)) return 0;
+
+    return 1;
+}
+
+int isPointerType(const char* type) {
+    return strcmp(type, "intptr") == 0 ||
+           strcmp(type, "charptr") == 0 ||
+           strcmp(type, "realptr") == 0;
+}
+
+int registerParams(node* plist) {
+    node* p = plist;
+    while (p) {
+        node* single = (strcmp(p->token, "PARAMS") == 0) ? p->left : p;
+        if (single && strcmp(single->token, "PARAM") == 0) {
+            char* id  = single->right->token;  // parameter name
+            char* typ = single->left->token;   // e.g. INT / REAL
+
+            if (insertSymbol(id, VAR, typ, 0, "param", NULL)) {
+                return 1;
+            }
+        }
+        p = (strcmp(p->token, "PARAMS") == 0) ? p->right : NULL;
+    }
+    return 0;  // success
+}
+
+int containsReturn(node *body)
+{
+    if (!body) return 0;
+
+    if (strcmp(body->token,"FUNCTION")==0 || strcmp(body->token,"PROC")==0)
+        return 0;
+
+    if (strcmp(body->token,"return")==0)
+        return 1;              
+
+    if (containsReturn(body->left )) return 1;
+    if (containsReturn(body->right)) return 1;
+
+    return 0;
+}
+
+/* =========================  3-ADDRESS-CODE GENERATOR  =========================
+   ⬇  Paste this whole module *after* your existing C-code section (before the
+      final closing brace).  Nothing in Parts 1-2 is changed.                */
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* ---------- instruction list infrastructure ---------- */
+typedef struct Instr {
+    char *text;
+    struct Instr *next;
+} Instr;
+
+static Instr *codeHead = NULL, *codeTail = NULL;
+static int    tempCnt  = 0;
+static int    labelCnt = 0;
+
+static char *newTemp () { char b[32]; sprintf(b,"t%d", tempCnt++);  return strdup(b); }
+static char *newLabel() { char b[32]; sprintf(b,"L%d", labelCnt++); return strdup(b); }
+
+static void emit(const char *fmt, ...)
+{
+    va_list ap; char buf[128];
+    va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
+
+    Instr *n = (Instr *)malloc(sizeof(Instr));
+    n->text = strdup(buf); n->next = NULL;
+    if (!codeHead) codeHead = codeTail = n;
+    else           codeTail = codeTail->next = n;
+}
+
+void dumpCode(FILE *out)
+{
+    for (Instr *p = codeHead; p; p = p->next) fprintf(out, "%s\n", p->text);
+}
+
+/* ---------- helpers --------------------------------------------------------- */
+static int isLiteral(const char *tok)
+{
+    return !strcmp(tok,"INT")   || !strcmp(tok,"REAL") ||
+           !strcmp(tok,"CHAR")  || !strcmp(tok,"STRING") ||
+           !strcmp(tok,"BOOL");
+}
+
+/* AST stores literal value in lit->left->token */
+static const char *literalValue(node *lit)
+{
+    return (lit->left && lit->left->token) ? lit->left->token : "0";
+}
+
+/* fast sizeof for frame calculation (4-byte default) */
+static int sizeofType(const char *t)
+{
+    if (!t) return 4;
+    if (!strcasecmp(t,"real")   || !strcasecmp(t,"realptr"))   return 8;
+    if (!strcasecmp(t,"string"))                               return 8;
+    return 4;   /* int, char, bool, intptr, charptr … */
+}
+
+/* modify “BeginFunc 0” with real byte count */
+static void patchBeginSize(Instr *beginLine, int bytes)
+{
+    char buf[16]; sprintf(buf, "%d", bytes);
+    /* "BeginFunc " is 10 chars, overwrite from there */
+    strcpy(beginLine->text + 10, buf);
+}
+
+/* ---------- forward decls for mutually recursive generators --------------- */
+static char *genExpr(node *e);
+static void  genStmt(node *s);
+
+/* ---------- expression → 3AC (returns temp / var name) -------------------- */
+static char *genExpr(node *e)
+{
+    if (!e) return strdup("0");
+
+    /* 1. terminals ---------------------------------------------------- */
+    if (isLiteral(e->token)) {
+        char *t = newTemp();
+        emit("%s = %s", t, literalValue(e));
+        return t;
+    }
+    if (!strcmp(e->token,"TRUE") || !strcmp(e->token,"FALSE")) {
+        char *t = newTemp();
+        emit("%s = %s", t, !strcmp(e->token,"TRUE") ? "1" : "0");
+        return t;
+    }
+    if (!strcmp(e->token,"NULL")) {
+        char *t = newTemp();
+        emit("%s = 0", t);
+        return t;
+    }
+    if (lookupSymbol(e->token)) {          /* variable / param */
+        return strdup(e->token);           /* already stored */
+    }
+
+    /* 2. unary -------------------------------------------------------- */
+    if (!strcmp(e->token,"unary-")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = - %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"not")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = ! %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"&")) {
+        char *v = genExpr(e->left);
+        char *t = newTemp(); emit("%s = & %s", t, v); return t;
+    }
+    if (!strcmp(e->token,"deref") || !strcmp(e->token,"unary*")) {
+        char *p = genExpr(e->left ? e->left : e->right);
+        char *t = newTemp(); emit("%s = * %s", t, p); return t;
+    }
+
+    /* 3. binary arithmetic / logic ----------------------------------- */
+    const char *binOps[] = {"+","-","*","/","and","or",
+                            "==","!=","<",">","<=",">="};
+    for (size_t i = 0; i < sizeof(binOps)/sizeof(binOps[0]); ++i) {
+        if (!strcmp(e->token, binOps[i])) {
+            char *l = genExpr(e->left);
+            char *r = genExpr(e->right);
+            char *t = newTemp();
+            emit("%s = %s %s %s", t, l, binOps[i], r);
+            return t;
+        }
+    }
+
+    /* 4. array indexing ---------------------------------------------- */
+    if (!strcmp(e->token,"index")) {
+        char *base = genExpr(e->left);   /* IDENT gives name */
+        char *idx  = genExpr(e->right);
+        char *t    = newTemp();
+        emit("%s = %s [ %s ]", t, base, idx);
+        return t;
+    }
+
+    /* 5. function call ----------------------------------------------- */
+    if (!strcmp(e->token,"call")) {
+        const char *fname = e->left->token;
+
+        /* gather params into stack[] for reverse push                  */
+        node *stack[32]; int top = 0;
+        for (node *p = e->right; p; p = (!strcmp(p->token,"exp_list")) ? p->right : NULL)
+            stack[top++] = (!strcmp(p->token,"exp_list")) ? p->left : p;
+
+        int bytes = 0;
+        for (int i = top - 1; i >= 0; --i) {
+            char *val = genExpr(stack[i]);
+            emit("PushParam %s", val);
+            bytes += sizeofType(inferExprType(stack[i]));
+        }
+
+        char *ret = newTemp();
+        emit("%s = LCall %s", ret, fname);
+        if (bytes) emit("PopParams %d", bytes);
+        return ret;
+    }
+
+    fprintf(stderr,"[CodeGen] unhandled expr token %s\n", e->token);
+    return strdup("0");
+}
+
+/* ---------- statement generator ---------------------------------------- */
+static void genStmt(node *s)
+{
+    if (!s || !s->token) return;
+
+    /* list of statements */
+    if (!strcmp(s->token,"statements")) { genStmt(s->left); genStmt(s->right); return; }
+
+    /* assignments ----------------------------------------------------- */
+    if (!strcmp(s->token,"assign")) {
+        char *rhs = genExpr(s->right);
+        emit("%s = %s", s->left->token, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"deref_assign")) {
+        char *lhs = genExpr(s->left);
+        char *rhs = genExpr(s->right);
+        emit("* %s = %s", lhs, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"array_assign")) {
+        char *idx = genExpr(s->left->left);
+        char *rhs = genExpr(s->right);
+        emit("%s [ %s ] = %s", s->left->token, idx, rhs);
+        return;
+    }
+    if (!strcmp(s->token,"null_assign")) { emit("%s = 0", s->left->token); return; }
+
+    /* return ---------------------------------------------------------- */
+    if (!strcmp(s->token,"return")) { emit("Return %s", genExpr(s->left)); return; }
+
+    /* block ----------------------------------------------------------- */
+    if (!strcmp(s->token,"block")) { genStmt(s->left); return; }
+
+    /* IF -------------------------------------------------------------- */
+    if (!strcmp(s->token,"if")) {
+        char *Lend = newLabel();
+        emit("if %s == 0 goto %s", genExpr(s->left), Lend);
+        genStmt(s->right);
+        emit("%s:", Lend); return;
+    }
+    if (!strcmp(s->token,"if_else")) {
+    char *Lelse = newLabel(), *Lend = newLabel();
+    emit("if %s == 0 goto %s", genExpr(s->left), Lelse);
+    genStmt(s->right->left);          /* then-block */
+    emit("goto %s", Lend);
+    emit("%s:", Lelse);
+    genStmt(s->right->right->left);   /* else-block (else->left) */
+    emit("%s:", Lend);
+    return;
+    }
+
+
+    /* WHILE ----------------------------------------------------------- */
+    if (!strcmp(s->token,"while")) {
+        char *Lc = newLabel(), *Le = newLabel();
+        emit("%s:", Lc);
+        emit("if %s == 0 goto %s", genExpr(s->left), Le);
+        genStmt(s->right);
+        emit("goto %s", Lc); emit("%s:", Le); return;
+    }
+
+    /* DO-WHILE -------------------------------------------------------- */
+    if (!strcmp(s->token,"do_while")) {
+        char *Ls = newLabel();
+        emit("%s:", Ls); genStmt(s->left);
+        emit("if %s != 0 goto %s", genExpr(s->right->left), Ls); return;
+    }
+
+    /* FOR ------------------------------------------------------------- */
+    if (!strcmp(s->token,"for")) {
+        node *h = s->left;
+        node *initVar   = h->left->left;     /* IDENT */
+        node *initExpr  = h->left->right;
+        node *condExpr  = h->right->left;
+        node *updateExp = h->right->right;
+
+        char *Lc = newLabel(), *Le = newLabel();
+
+        emit("%s = %s", initVar->token, genExpr(initExpr));
+        emit("%s:", Lc);
+        emit("if %s == 0 goto %s", genExpr(condExpr), Le);
+        genStmt(s->right);
+        emit("%s = %s", updateExp->left->token, genExpr(updateExp->right));
+        emit("goto %s", Lc);
+        emit("%s:", Le); return;
+    }
+}
+
+/* ---------- per-function + global traversal ---------------------------- */
+static void genFunction(node *f)
+{
+    const char *fname = f->left->token;          /* IDENT */
+    emit("\n%s:", fname);
+    emit("BeginFunc 0");                         /* placeholder */
+    Instr *beginLine = codeTail;                 /* remember line   */
+    int    tempBefore = tempCnt;                 /* snapshot temps  */
+
+    /* BODY wrapper → statements are BODY->right */
+    node *stmts = f->right                     /* FUNC_IN      */
+                     ->right                  /* DEF_BODY     */
+                     ->right                  /* BODY         */
+                     ->right;                 /* statements   */
+
+    genStmt(stmts);
+
+    /* frame size = locals + new temps */
+    int tempsBytes = (tempCnt - tempBefore) * 4;
+
+    /* count local decls in BODY->left (var) */
+    int localsBytes = 0;
+    node *declChain = f->right->right->right->left;   /* VAR or NULL */
+    if (declChain && !strcmp(declChain->token,"VAR")) {
+        node *d = declChain->left;    /* first DECL / DECS */
+        while (d) {
+            node *single = (!strcmp(d->token,"DECS")) ? d->left : d;
+            const char *typ = single->left->token;     /* type node token */
+            localsBytes += sizeofType(typ);
+            d = (!strcmp(d->token,"DECS")) ? d->right : NULL;
+        }
+    }
+    patchBeginSize(beginLine, tempsBytes + localsBytes);
+
+    emit("EndFunc");
+}
+
+static void genGlobal(node *n)
+{
+    if (!n) return;
+    if (!strcmp(n->token,"FUNCS")) { genGlobal(n->left); genGlobal(n->right); }
+    else if (!strcmp(n->token,"FUNCTION") || !strcmp(n->token,"PROC")) genFunction(n);
+}
+
+void generateCode(node *root)
+{
+    if (root && !strcmp(root->token,"CODE")) genGlobal(root->left);
+}
+
