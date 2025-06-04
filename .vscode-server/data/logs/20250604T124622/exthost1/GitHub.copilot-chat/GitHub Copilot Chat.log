@@ -1,0 +1,23 @@
+2025-06-04 12:46:28.986 [info] Can't use the Electron fetcher in this environment.
+2025-06-04 12:46:28.986 [info] Using the Node fetch fetcher.
+2025-06-04 12:46:28.986 [info] Initializing Git extension service.
+2025-06-04 12:46:28.986 [info] Successfully activated the vscode.git extension.
+2025-06-04 12:46:28.986 [info] Enablement state of the vscode.git extension: true.
+2025-06-04 12:46:28.986 [info] Successfully registered Git commit message provider.
+2025-06-04 12:46:32.255 [info] Logged in as EtaiCohen
+2025-06-04 12:46:35.915 [info] Got Copilot token for EtaiCohen
+2025-06-04 12:46:36.444 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-06-04 12:46:36.444 [info] GitHub.vscode-pull-request-github extension is not yet activated.
+2025-06-04 12:46:36.475 [info] Registering default platform agent...
+2025-06-04 12:46:37.518 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-06-04 12:46:37.599 [info] Fetched model metadata in 1669ms 7a57d45c-15db-40e6-a3c3-e6714825da1c
+2025-06-04 12:46:37.710 [info] activationBlocker from 'languageModelAccess' took for 7081ms
+2025-06-04 13:16:39.329 [info] Logged in as EtaiCohen
+2025-06-04 13:16:40.526 [info] Got Copilot token for EtaiCohen
+2025-06-04 13:16:40.744 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-06-04 13:16:41.044 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-06-04 13:46:41.465 [info] Logged in as EtaiCohen
+2025-06-04 13:46:42.679 [info] Got Copilot token for EtaiCohen
+2025-06-04 13:46:43.023 [info] copilot token chat_enabled: true, sku: free_limited_copilot
+2025-06-04 13:46:43.384 [info] BYOK: Copilot Chat known models list fetched successfully.
+2025-06-04 13:46:43.545 [info] Fetched model metadata in 854ms 1a77d453-f6c6-4f9f-9f05-5c2ab80ffdda

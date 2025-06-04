@@ -1,0 +1,129 @@
+2025-06-04 12:46:22.597 [info] 
+
+
+
+
+2025-06-04 12:46:22.611 [info] Extension host agent started.
+2025-06-04 12:46:22.692 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 3)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20330)
+    at async yf.J (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:26741)
+    at async yf.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:19759)
+    at async kl.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:14176)
+2025-06-04 12:46:22.694 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 5)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20330)
+    at async yf.J (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:26741)
+    at async yf.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:19759)
+    at async kl.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:14176)
+2025-06-04 12:46:22.697 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 3)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20330)
+    at async R8.H (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:9952)
+    at async R8.s (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:7847)
+2025-06-04 12:46:22.697 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 5)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20330)
+    at async R8.H (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:9952)
+    at async R8.s (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:7847)
+2025-06-04 12:46:22.743 [info] Deleted marked for removal extension from disk github.copilot-chat /home/etaico/.vscode-server/extensions/github.copilot-chat-0.27.0
+2025-06-04 12:46:22.756 [info] Marked extension as removed github.copilot-1.325.0
+2025-06-04 12:46:22.756 [info] Marked extension as removed github.copilot-chat-0.27.2
+2025-06-04 12:46:22.761 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.323.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 2)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.I (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:26272)
+    at async yf.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:19774)
+    at async kl.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:14176)
+2025-06-04 12:46:22.762 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Promise.all (index 4)
+    at async bl.r (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:36328)
+    at async Ol.scanAllUserExtensions (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:29350)
+    at async yf.I (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:26272)
+    at async yf.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:19774)
+    at async kl.cleanUp (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:14176)
+2025-06-04 12:46:22.970 [info] [127.0.0.1][baf0b18a][ManagementConnection] New connection established.
+2025-06-04 12:46:23.345 [info] ComputeTargetPlatform: linux-x64
+2025-06-04 12:46:23.490 [info] [127.0.0.1][6f9f5532][ExtensionHostConnection] New connection established.
+2025-06-04 12:46:23.503 [info] [127.0.0.1][6f9f5532][ExtensionHostConnection] <550> Launched Extension Host Process.
+2025-06-04 12:46:25.783 [info] ComputeTargetPlatform: linux-x64
+2025-06-04 12:46:26.936 [info] Getting Manifest... github.copilot
+2025-06-04 12:46:26.936 [info] Getting Manifest... github.copilot-chat
+2025-06-04 12:46:27.116 [info] Installing extension: github.copilot {"productVersion":{"version":"1.100.3","date":"2025-06-02T13:30:54.273Z"},"pinned":false,"operation":3,"isApplicationScoped":false,"donotVerifySignature":false,"context":{"clientTargetPlatform":"win32-x64"},"profileLocation":{"$mid":1,"fsPath":"/home/etaico/.vscode-server/extensions/extensions.json","external":"file:///home/etaico/.vscode-server/extensions/extensions.json","path":"/home/etaico/.vscode-server/extensions/extensions.json","scheme":"file"}}
+2025-06-04 12:46:27.144 [info] Installing extension: github.copilot-chat {"productVersion":{"version":"1.100.3","date":"2025-06-02T13:30:54.273Z"},"pinned":false,"operation":3,"isApplicationScoped":false,"donotVerifySignature":false,"context":{"clientTargetPlatform":"win32-x64"},"profileLocation":{"$mid":1,"fsPath":"/home/etaico/.vscode-server/extensions/extensions.json","external":"file:///home/etaico/.vscode-server/extensions/extensions.json","path":"/home/etaico/.vscode-server/extensions/extensions.json","scheme":"file"}}
+2025-06-04 12:46:27.854 [info] Getting Manifest... github.copilot-chat
+2025-06-04 12:46:28.147 [info] Getting Manifest... github.copilot
+2025-06-04 12:46:31.470 [info] Extension signature verification result for github.copilot: Success. Internal Code: 0. Executed: true. Duration: 2669ms.
+2025-06-04 12:46:31.482 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.326.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Ol.scanExistingExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:30098)
+    at async yf.scanLocalExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:25020)
+    at async yf.extractUserExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20834)
+    at async kl.wb (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:15397)
+2025-06-04 12:46:31.484 [warning] Error while scanning the existing extension at /home/etaico/.vscode-server/extensions/github.copilot-1.326.0. Deleting the existing extension and extracting it. Cannot read the extension from /home/etaico/.vscode-server/extensions/github.copilot-1.326.0
+2025-06-04 12:46:31.485 [info] Deleted removeExisting extension from disk github.copilot /home/etaico/.vscode-server/extensions/github.copilot-1.326.0
+2025-06-04 12:46:31.649 [info] Extension signature verification result for github.copilot-chat: Success. Internal Code: 0. Executed: true. Duration: 2813ms.
+2025-06-04 12:46:32.653 [info] Extracted extension to file:///home/etaico/.vscode-server/extensions/github.copilot-chat-0.27.3: github.copilot-chat
+2025-06-04 12:46:32.680 [info] Renamed to /home/etaico/.vscode-server/extensions/github.copilot-chat-0.27.3
+2025-06-04 12:46:32.712 [info] Extension installed successfully: github.copilot-chat file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:46:32.718 [info] Marked extension as removed github.copilot-chat-0.27.1
+2025-06-04 12:46:33.196 [info] Extracted extension to file:///home/etaico/.vscode-server/extensions/github.copilot-1.326.0: github.copilot
+2025-06-04 12:46:33.211 [info] Renamed to /home/etaico/.vscode-server/extensions/github.copilot-1.326.0
+2025-06-04 12:46:33.228 [info] Marked extension as removed github.copilot-1.322.0
+2025-06-04 12:46:33.236 [info] Extension installed successfully: github.copilot file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:46:48.822 [info] Extensions added from another source github.copilot file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:46:48.822 [info] Extensions added from another source github.copilot-chat file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:47:09.267 [info] Extensions added from another source github.copilot file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:47:09.267 [info] Extensions added from another source github.copilot-chat file:///home/etaico/.vscode-server/extensions/extensions.json
+2025-06-04 12:47:09.360 [error] Error: Unable to read file '/home/etaico/.vscode-server/extensions/github.copilot-1.317.0/package.json' (Error: Unable to resolve nonexistent file '/home/etaico/.vscode-server/extensions/github.copilot-1.317.0/package.json')
+    at Sl.G (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55380)
+    at Sl.F (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:55205)
+    at async Sl.D (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:64:54577)
+    at async bl.u (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:39397)
+    at async bl.scanExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:37903)
+    at async Ol.scanExistingExtension (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:54:30098)
+    at async yf.scanUserExtensionAtLocation (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:20495)
+    at async kl.Db (file:///home/etaico/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/out/server-main.js:55:18702)
