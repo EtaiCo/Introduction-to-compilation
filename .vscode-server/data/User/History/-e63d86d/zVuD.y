@@ -116,7 +116,7 @@
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp 
-%type <nodePtr> bl_state rt_state 
+%type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression 
 %type <nodePtr> stmt_or_block
 
@@ -431,7 +431,7 @@ state :
             | do_while_state {$$ = $1;}
             | bl_state {$$ = $1;}
             | rt_state {$$ = $1;}
-            | func_call {$$ = $1;}
+            | func_call_state {$$ = $1;}
             | expression ';' { $$ = $1; }
 
         ;
@@ -656,6 +656,12 @@ bl_state
         $$ = mknode("block", $5, mknode("VAR", $3, NULL)); }
 ;
 
+
+
+
+/* -------------------------  Function‑call stmt --------------------------*/
+func_call_state :
+     func_call ';'                            { $$ = $1; }
 
 
 /* -------------------------  Function call expr --------------------------*/
@@ -1089,15 +1095,14 @@ char* inferExprType(node* expr)
     if (strcmp(expr->token,"TRUE")==0 || strcmp(expr->token,"FALSE")==0)
     return "bool";
 
-    Symbol* sym = lookupSymbol(expr->token);
-
-      if (sym && sym->type == FUNC && sym->returnType) {
+    if (sym && sym->type == FUNC && sym->returnType) {
     /* allow a function name by itself: treat it as its return type */
     char *lt = strdup(sym->returnType);
     for (char *p = lt; *p; ++p) *p = tolower(*p);
     return lt;  
     }
-
+    
+    Symbol* sym = lookupSymbol(expr->token);
     if (sym && sym->type==VAR && sym->returnType){
         char* norm=strdup(sym->returnType);
         for(char*p=norm;*p;++p)*p=tolower(*p);
@@ -1219,11 +1224,6 @@ char* inferExprType(node* expr)
             return lowered;
         }
         return "unknown";
-    }
-
-    if (strcmp(expr->token,"exp_list")==0) {
-    /* type of the whole list is irrelevant – don’t warn */
-    return "unknown";
     }
 
     printf("inferExprType: WARNING – unknown token %s\n",expr->token);

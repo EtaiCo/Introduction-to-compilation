@@ -15,7 +15,8 @@ begin
  return b + a; 
 end
  
-def _main_():  
+def _main_():
+begin  
 var 
       type int:a,b; 
 begin 
@@ -25,4 +26,5 @@ begin
   b = call foo(3.14); 
   a = a + b; 
  end  
+end
 end

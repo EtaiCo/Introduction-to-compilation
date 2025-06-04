@@ -43,8 +43,8 @@ begin
     begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
-         #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         k = call goo2(5,i);
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#

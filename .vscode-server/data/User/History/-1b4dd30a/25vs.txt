@@ -31,7 +31,7 @@ begin
     begin
           k = '@';
           i = l + l;
-          #->11 i= j+1; <-#
+          i= j+1;
           #->12 i= k+1; <-#
           if (k=='*') or (x!=FALSE) and ( l+m < i):
             x = l < m;
@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#

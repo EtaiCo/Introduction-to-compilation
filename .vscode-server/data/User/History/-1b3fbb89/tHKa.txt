@@ -17,12 +17,12 @@ end
  
 def _main_():  
 var 
-      type int:a,b; 
+      type int:A,B; 
 begin 
- a = 0; 
- while a < 10: 
+ A = 0; 
+ while A < 10: 
  begin 
-  b = call foo(3.14); 
-  a = a + b; 
+  B = call foo(3.14); 
+  A = A + B; 
  end  
 end

@@ -116,9 +116,8 @@
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp 
-%type <nodePtr> bl_state rt_state 
+%type <nodePtr> bl_state rt_state func_call_state
 %type <nodePtr> func_call exp_list expression 
-%type <nodePtr> stmt_or_block
 
 
 
@@ -220,14 +219,14 @@ function :
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
         node* returnsN = mknode("RETURNS", $8, NULL);
-        node* bodyN = mknode("BODY", $10, $12);  // $9 = var, $12 = statements
+        node* bodyN = mknode("BODY", $9, $12);  // $9 = var, $12 = statements
         node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
         $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
         popScope();
 
     }
 
-  | DEF IDENT '(' params ')' ':' func_scope_start var T_BEGIN statements END
+  | DEF IDENT '(' params ')' func_scope_start ':' var T_BEGIN statements END
     {
         if (moreThanOneMain($2)) YYABORT;
 
@@ -275,7 +274,7 @@ function :
         }
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
-        node* bodyN = mknode("BODY", $8, $10);  // $7 = var, $10 = statements
+        node* bodyN = mknode("BODY", $7, $10);  // $7 = var, $10 = statements
         $$ = mknode("PROC", idN, mknode("PROC_IN", paramsN, bodyN));
         popScope();
 
@@ -431,7 +430,7 @@ state :
             | do_while_state {$$ = $1;}
             | bl_state {$$ = $1;}
             | rt_state {$$ = $1;}
-            | func_call {$$ = $1;}
+            | func_call_state {$$ = $1;}
             | expression ';' { $$ = $1; }
 
         ;
@@ -539,13 +538,8 @@ assign_state
 
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
-stmt_or_block
-    : state        /* one single statement */
-    | bl_state     /* BEGIN … END or var … BEGIN … END */
-;
-
 if_state :
-    IF expression ':' stmt_or_block %prec ELSELESS
+    IF expression ':' bl_state  %prec ELSELESS
     {
         if (strcmp(inferExprType($2), "bool") != 0) {
             yyerror("Semantic Error: IF condition must be of type 'bool'.");
@@ -554,7 +548,7 @@ if_state :
         $$ = mknode("if", $2, $4);
     }
 
-  | IF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
+  | IF expression ':' bl_state ELSE ':' bl_state
     {
         if (strcmp(inferExprType($2), "bool") != 0) {
             yyerror("Semantic Error: IF condition must be of type 'bool'.");
@@ -563,7 +557,7 @@ if_state :
         $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
     }
 
-  | IF expression ':' stmt_or_block  ELIF expression ':' stmt_or_block 
+  | IF expression ':' bl_state ELIF expression ':' bl_state
     {
         if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
             yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
@@ -572,7 +566,7 @@ if_state :
         $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
     }
 
-  | IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
+  | IF expression ':' bl_state ELIF expression ':' bl_state ELSE ':' bl_state
     {
         if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
             yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
@@ -639,24 +633,20 @@ rt_state :
     ;
 
 /* --------------------  BEGIN … END compound‑statement -------------------*/
-block_scope_start
-    : %empty { pushScope(); }
-;
-
-/* Simple BEGIN … END without its own var-section */
-bl_state
-    : T_BEGIN block_scope_start statements END
-      { popScope();  $$ = mknode("block", $3, NULL); }
-
-/* Block that **does** start with a var-section                */
-/* pushScope() happens in block_scope_start *before* dec_list  */
-  | block_scope_start VARIABLE dec_list T_BEGIN statements END
-      { popScope();
-        /* $3 = dec_list, $5 = statements                     */
-        $$ = mknode("block", $5, mknode("VAR", $3, NULL)); }
-;
+bl_state :
+    T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $3, NULL); }
+  | var T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $4, $1); }
 
 
+
+
+/* -------------------------  Function‑call stmt --------------------------*/
+func_call_state :
+     func_call ';'                            { $$ = $1; }
+    | IDENT ASSIGN func_call ';'          {
+          $$ = mknode("assign",
+                      mknode($1,NULL,NULL),$3); }
+    ;
 
 /* -------------------------  Function call expr --------------------------*/
 func_call :
@@ -1090,14 +1080,6 @@ char* inferExprType(node* expr)
     return "bool";
 
     Symbol* sym = lookupSymbol(expr->token);
-
-      if (sym && sym->type == FUNC && sym->returnType) {
-    /* allow a function name by itself: treat it as its return type */
-    char *lt = strdup(sym->returnType);
-    for (char *p = lt; *p; ++p) *p = tolower(*p);
-    return lt;  
-    }
-
     if (sym && sym->type==VAR && sym->returnType){
         char* norm=strdup(sym->returnType);
         for(char*p=norm;*p;++p)*p=tolower(*p);
@@ -1219,11 +1201,6 @@ char* inferExprType(node* expr)
             return lowered;
         }
         return "unknown";
-    }
-
-    if (strcmp(expr->token,"exp_list")==0) {
-    /* type of the whole list is irrelevant – don’t warn */
-    return "unknown";
     }
 
     printf("inferExprType: WARNING – unknown token %s\n",expr->token);

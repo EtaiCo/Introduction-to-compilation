@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#
@@ -63,7 +63,7 @@ begin
           return temp;
      end
       bo= call foo1 (i, j, k, '^');
-      #->18 j= call foo2(); <-#
+      j= call foo2(); 
       total=call si1(i+j+k);  #-> statemets <-#
      return total;
 end

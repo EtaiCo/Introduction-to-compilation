@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#
@@ -75,7 +75,7 @@ begin
      cnt= 1;
      while  i < |s1|:  begin
         while  j < |s2| / 2:  begin
-           #->19 if s1[i]  =  s2[j] :  <-#
+           if s1[i]  ==  s2[j] :
            begin
                cnt=cnt*2;
            end

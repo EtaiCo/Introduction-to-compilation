@@ -21,17 +21,17 @@ begin
    end 
    return res;
 end
-def  goo1(par1  int:i; par2  int:j; par3  int:k; par4  int:x) :  
+def  goo1(par1  int:i; par2  int:ma; par3  int:k; par4  int:x) :  
 begin
     def  goo2 (par1 int:l; par2 int:m; par3 int:n) : returns bool
     var 
-          type bool: x, j;
+          type bool: x;
           #->10 type bool: n;<-#
           type char: k;
     begin
           k = '@';
           i = l + l;
-          #->11 i= j+1; <-#
+          i= j+1; 
           #->12 i= k+1; <-#
           if (k=='*') or (x!=FALSE) and ( l+m < i):
             x = l < m;
@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#

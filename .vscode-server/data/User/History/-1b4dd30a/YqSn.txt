@@ -13,7 +13,7 @@ begin
       #->2 b = 8; <-#
       a = (y*7)/a-y;
       #->3 a = (y*7)/b-y; <-#
-      #->4 a = (y*7)/a-c1; <-#
+      a = (y*7)/a-c1; 
       #->5 res = (b==c) and (y>a); <-#
       #->6 res = (b==c1) and (y+a); <-#
       #->7 3+6 = 9; <-#
@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#

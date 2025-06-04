@@ -26,7 +26,7 @@ begin
     def  goo2 (par1 int:l; par2 int:m; par3 int:n) : returns bool
     var 
           type bool: x, j;
-          #->10 type bool: n;<-#
+          type bool: n;
           type char: k;
     begin
           k = '@';
@@ -44,7 +44,7 @@ begin
          k= call goo2(5,i,j);
          #->13 x= call goo2(5,i,j); <-#
          #->14 k = call goo2(5,i); <-#
-         k = call goo2(5,x,j); 
+         #->15 k = call goo2(5,x,j); <-#
     end
        #->16 n= false; <-#
        #->17 x= '#'; <-#
