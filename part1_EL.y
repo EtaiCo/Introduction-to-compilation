@@ -119,9 +119,8 @@
 %type <nodePtr> statements state assign_state
 %type <nodePtr> if_state while_state do_while_state
 %type <nodePtr> for_state for_h advance_exp 
-%type <nodePtr> bl_state rt_state func_call_state
+%type <nodePtr> bl_state rt_state  stmt_or_block 
 %type <nodePtr> func_call exp_list expression 
-%type <nodePtr> suite 
 
 
 %%
@@ -140,20 +139,19 @@ functions :
     ;
 
 /* ------------------------ Single function rule -------------------------*/
-scope_marker
-    : %empty {                                          /* begin action */
-          pushScope();
-
-          /* ---------- register the parameters ---------- */
-          if (g_lastParamList && registerParams(g_lastParamList)) {
-              yyerror("Semantic Error: Duplicate parameter name.");
-              YYABORT;
-          }
-      }
+func_scope_start
+    : %empty {
+        pushScope();
+        if (g_lastParamList && registerParams(g_lastParamList)) {
+            yyerror("Semantic Error: Duplicate parameter name.");
+            YYABORT;
+        }
+    }
 ;
 
 function :
-    DEF IDENT '(' params ')' ':' RETURNS type var scope_marker T_BEGIN statements END
+    DEF IDENT '(' params ')' ':' RETURNS type func_scope_start var T_BEGIN statements END
+
     {
         if (moreThanOneMain($2)) YYABORT;
 
@@ -223,14 +221,14 @@ function :
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
         node* returnsN = mknode("RETURNS", $8, NULL);
-        node* bodyN = mknode("BODY", $9, $12);  // $9 = var, $12 = statements
+        node* bodyN = mknode("BODY", $10, $12);  // $9 = var, $12 = statements
         node* defBodyN = mknode("DEF_BODY", returnsN, bodyN);
         $$ = mknode("FUNCTION", idN, mknode("FUNC_IN", paramsN, defBodyN));
         popScope();
 
     }
 
-  | DEF IDENT '(' params ')' ':' var scope_marker T_BEGIN statements END
+  | DEF IDENT '(' params ')' ':' func_scope_start var T_BEGIN statements END
     {
         if (moreThanOneMain($2)) YYABORT;
 
@@ -278,7 +276,7 @@ function :
         }
         node* idN = mknode($2, NULL, NULL);
         node* paramsN = mknode("PARAMS", $4, NULL);
-        node* bodyN = mknode("BODY", $7, $10);  // $7 = var, $10 = statements
+        node* bodyN = mknode("BODY", $8, $10);  // $7 = var, $10 = statements
         $$ = mknode("PROC", idN, mknode("PROC_IN", paramsN, bodyN));
         popScope();
 
@@ -435,7 +433,7 @@ state :
             | do_while_state {$$ = $1;}
             | bl_state {$$ = $1;}
             | rt_state {$$ = $1;}
-            | func_call_state {$$ = $1;}
+            | func_call {$$ = $1;}
             | expression ';' { $$ = $1; }
 
         ;
@@ -456,6 +454,10 @@ assign_state
         char* lhsType = strdup(lvar->returnType); // normalize lhs type too
         for (char* p = lhsType; *p; ++p) *p = tolower(*p);
         char* rhsTypeA = inferExprType($3);
+
+        if (strcmp(lhsType,"bool")==0 && strcmp(rhsTypeA,"int")==0) {
+        rhsTypeA = lhsType;          /* מותר int→bool  */
+    }
 
         if (strcmp(lhsType, rhsTypeA) != 0) {
             char msg[256];
@@ -543,56 +545,43 @@ assign_state
 
 
 /* -----------------------------  IF / ELIF / ELSE ------------------------*/
-/* dangling-else precedence stays exactly the same */
+stmt_or_block
+    : state        /* one single statement */
+    | bl_state     /* BEGIN … END or var … BEGIN … END */
+;
 
-suite
-    : bl_state                 { $$ = $1; }   /* BEGIN … END  */
-    | state                    { $$ = $1; }   /* single stmt  */
-    ;
-    
-if_state
-    : IF expression ':' suite               %prec ELSELESS
-      {
-          if (strcmp(inferExprType($2), "bool") != 0)
-              { yyerror("Semantic Error: IF condition must be of type 'bool'."); YYABORT; }
-          $$ = mknode("if", $2, $4);
-      }
+if_state :
+    IF expression ':' stmt_or_block %prec ELSELESS
+    {
+        if (strcmp(inferExprType($2), "bool") != 0) {
 
-    | IF expression ':' suite ELSE ':' suite
-      {
-          if (strcmp(inferExprType($2), "bool") != 0)
-              { yyerror("Semantic Error: IF condition must be of type 'bool'."); YYABORT; }
-          $$ = mknode("if_else", $2,
-                       mknode("then", $4,
-                              mknode("else", $7, NULL)));
-      }
+        }
+        $$ = mknode("if", $2, $4);
+    }
 
-    | IF expression ':' suite
-      ELIF expression ':' suite
-      {
-          if (strcmp(inferExprType($2), "bool") != 0 ||
-              strcmp(inferExprType($6), "bool") != 0)
-              { yyerror("Semantic Error: IF/ELIF conditions must be bool."); YYABORT; }
-          $$ = mknode("if_elif", $2,
-                       mknode("then", $4,
-                              mknode("elif", $6, $8)));
-      }
+  | IF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
+    {
+        if (strcmp(inferExprType($2), "bool") != 0) {
 
-    | IF expression ':' suite
-      ELIF expression ':' suite
-      ELSE ':' suite
-      {
-          if (strcmp(inferExprType($2), "bool") != 0 ||
-              strcmp(inferExprType($6), "bool") != 0)
-              { yyerror("Semantic Error: IF/ELIF conditions must be bool."); YYABORT; }
-          $$ = mknode("if_elif-else", $2,
-                       mknode("then", $4,
-                              mknode("elif", $6,
-                                     mknode("elif-then", $8,
-                                            mknode("else", $11, NULL)))));
-      }
-    ;
+        }
+        $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
+    }
 
+  | IF expression ':' stmt_or_block  ELIF expression ':' stmt_or_block 
+    {
+        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
+
+        }
+        $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
+    }
+
+  | IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
+    {
+        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
+
+        }
+        $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL)))));
+    };
 
 /* -----------------------------  WHILE loop ------------------------------*/
 while_state :
@@ -652,20 +641,23 @@ rt_state :
     ;
 
 /* --------------------  BEGIN … END compound‑statement -------------------*/
-bl_state :
-    T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $3, NULL); }
-  | var T_BEGIN { pushScope(); } statements END { popScope(); $$ = mknode("block", $4, $1); }
+block_scope_start
+    : %empty { pushScope(); }
+;
 
+/* Simple BEGIN … END without its own var-section */
+bl_state
+    : T_BEGIN block_scope_start statements END
+      { popScope();  $$ = mknode("block", $3, NULL); }
 
+/* Block that **does** start with a var-section                */
+/* pushScope() happens in block_scope_start *before* dec_list  */
+  | block_scope_start VARIABLE dec_list T_BEGIN statements END
+      { popScope();
+        /* $3 = dec_list, $5 = statements                     */
+        $$ = mknode("block", $5, mknode("VAR", $3, NULL)); }
+;
 
-
-/* -------------------------  Function‑call stmt --------------------------*/
-func_call_state :
-     func_call ';'                            { $$ = $1; }
-    | IDENT ASSIGN func_call ';'          {
-          $$ = mknode("assign",
-                      mknode($1,NULL,NULL),$3); }
-    ;
 
 /* -------------------------  Function call expr --------------------------*/
 func_call :
@@ -708,13 +700,21 @@ func_call :
         char* actualType = inferExprType(exprNode);
         char* expectedType = f->paramTypes[index];
 
-        if (strcmp(actualType, expectedType) != 0) {
+if (strcmp(actualType, expectedType) != 0) {
+
+        /* char  →  int  מותרת */
+        if (strcmp(actualType,"char")==0 && strcmp(expectedType,"int")==0) {
+            /* nothing to report – promotion allowed */
+        }
+        else {
             char msg[256];
-            sprintf(msg, "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
-                    index + 1, f->name, actualType, expectedType);
+            sprintf(msg,
+                "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
+                index + 1, f->name, actualType, expectedType);
             yyerror(msg);
             YYABORT;
         }
+}
 
         temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
         index++;
@@ -1105,12 +1105,23 @@ char* inferExprType(node* expr)
     if (strcmp(expr->token,"TRUE")==0 || strcmp(expr->token,"FALSE")==0)
     return "bool";
 
+
     Symbol* sym = lookupSymbol(expr->token);
-    if (sym && sym->type==VAR && sym->returnType){
-        char* norm=strdup(sym->returnType);
-        for(char*p=norm;*p;++p)*p=tolower(*p);
-        return norm;
-    }
+
+    if (sym && sym->type == FUNC && sym->returnType) {
+    char *lt = strdup(sym->returnType);
+    for (char *p = lt; *p; ++p) *p = tolower(*p);
+    return lt;
+}
+    if (sym && sym->type == VAR && sym->returnType) {
+    char *norm = strdup(sym->returnType);   /* deep-copy + lowercase */
+    for (char *p = norm; *p; ++p) *p = tolower(*p);
+    return norm;
+}
+
+    if (isalpha((unsigned char)expr->token[0])) {
+    return "int";          /* default fallback */
+}
 
     char* lt = expr->left  ? inferExprType(expr->left ) : NULL;
     char* rt = expr->right ? inferExprType(expr->right) : NULL;
@@ -1128,13 +1139,17 @@ char* inferExprType(node* expr)
     }
 
     /* and or */
-    if (strcmp(expr->token,"and")==0||strcmp(expr->token,"or")==0){
-        if (!isBool(lt)||!isBool(rt)){
-            yyerror("Semantic Error: logical operators require bool.");
-            return "unknown";
-        }
-        return "bool";
+   if (strcmp(expr->token,"and")==0 || strcmp(expr->token,"or")==0) {
+
+    int lOk = isBool(lt) || !strcmp(lt,"unknown");
+    int rOk = isBool(rt) || !strcmp(rt,"unknown");
+
+    if (!lOk || !rOk) {
+        yyerror("Semantic Error: logical operators require bool.");
+        return "unknown";
     }
+    return "bool";
+}
 
     /* > < >= <= */
     if (strcmp(expr->token,">")==0||strcmp(expr->token,"<")==0||
@@ -1183,13 +1198,7 @@ char* inferExprType(node* expr)
 
     /* !expr */
     /* not / !  (unary NOT) */
-    if (strcmp(expr->token,"not")==0 || strcmp(expr->token,"!")==0){
-    if (!isBool(lt)){
-        yyerror("Semantic Error: !/not expects bool.");
-        return "unknown";
-    }
-    return "bool";
-    }
+
 
 
    if (strcmp(expr->token,"&")==0){
@@ -1228,7 +1237,8 @@ char* inferExprType(node* expr)
         }
         return "unknown";
     }
-
+    if (strcmp(expr->token,"exp_list")==0)
+    return "unknown";
     printf("inferExprType: WARNING – unknown token %s\n",expr->token);
     return "unknown";
 }
@@ -1441,6 +1451,9 @@ static char *genExpr(node *e)
     }
     if (lookupSymbol(e->token)) {          /* variable / param */
         return strdup(e->token);           /* already stored */
+    }
+    if (isalpha((unsigned char)e->token[0])) {
+    return strdup(e->token);           /* treat as plain variable */
     }
 
     /* 2. unary -------------------------------------------------------- */
