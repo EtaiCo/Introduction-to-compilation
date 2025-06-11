@@ -658,11 +658,11 @@ static const yytype_int16 yyrline[] =
      365,   366,   367,   368,   370,   374,   376,   380,   381,   386,
      419,   421,   422,   428,   429,   430,   431,   432,   433,   434,
      435,   436,   437,   443,   475,   488,   504,   526,   549,   550,
-     554,   562,   570,   578,   588,   598,   609,   611,   617,   632,
-     640,   645,   650,   655,   664,   673,   729,   730,   737,   741,
-     745,   749,   752,   763,   764,   765,   766,   769,   770,   792,
-     794,   812,   825,   826,   831,   832,   833,   834,   835,   836,
-     840,   866,   867,   869,   870,   871,   876
+     554,   563,   572,   581,   592,   602,   613,   615,   621,   636,
+     644,   649,   654,   659,   668,   677,   725,   726,   733,   737,
+     741,   745,   748,   759,   760,   761,   762,   765,   766,   788,
+     790,   808,   821,   822,   827,   828,   829,   830,   831,   832,
+     836,   862,   863,   865,   866,   867,   872
 };
 #endif
 
@@ -2062,48 +2062,52 @@ yyreduce:
 #line 555 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-2].nodePtr)), "bool") != 0) {
-
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
         }
         (yyval.nodePtr) = mknode("if", (yyvsp[-2].nodePtr), (yyvsp[0].nodePtr));
     }
-#line 2070 "part1_EL.tab.c"
+#line 2071 "part1_EL.tab.c"
     break;
 
   case 61: /* if_state: IF expression ':' stmt_or_block ELSE ':' stmt_or_block  */
-#line 563 "part1_EL.y"
+#line 564 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-5].nodePtr)), "bool") != 0) {
-
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
         }
         (yyval.nodePtr) = mknode("if_else", (yyvsp[-5].nodePtr), mknode("then", (yyvsp[-3].nodePtr), mknode("else", (yyvsp[0].nodePtr), NULL)));
     }
-#line 2081 "part1_EL.tab.c"
+#line 2083 "part1_EL.tab.c"
     break;
 
   case 62: /* if_state: IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block  */
-#line 571 "part1_EL.y"
+#line 573 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-6].nodePtr)), "bool") != 0 || strcmp(inferExprType((yyvsp[-2].nodePtr)), "bool") != 0) {
-
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
         }
         (yyval.nodePtr) = mknode("if_elif", (yyvsp[-6].nodePtr), mknode("then", (yyvsp[-4].nodePtr), mknode("elif", (yyvsp[-2].nodePtr), (yyvsp[0].nodePtr))));
     }
-#line 2092 "part1_EL.tab.c"
+#line 2095 "part1_EL.tab.c"
     break;
 
   case 63: /* if_state: IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block ELSE ':' stmt_or_block  */
-#line 579 "part1_EL.y"
+#line 582 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-9].nodePtr)), "bool") != 0 || strcmp(inferExprType((yyvsp[-5].nodePtr)), "bool") != 0) {
-
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
         }
         (yyval.nodePtr) = mknode("if_elif-else", (yyvsp[-9].nodePtr), mknode("then", (yyvsp[-7].nodePtr), mknode("elif", (yyvsp[-5].nodePtr), mknode("elif-then", (yyvsp[-3].nodePtr), mknode("else", (yyvsp[0].nodePtr), NULL)))));
     }
-#line 2103 "part1_EL.tab.c"
+#line 2107 "part1_EL.tab.c"
     break;
 
   case 64: /* while_state: WHILE expression ':' bl_state  */
-#line 589 "part1_EL.y"
+#line 593 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-2].nodePtr)), "bool") != 0) {
             yyerror("Semantic Error: WHILE condition must be of type 'bool'.");
@@ -2111,11 +2115,11 @@ yyreduce:
         }
         (yyval.nodePtr) = mknode("while", (yyvsp[-2].nodePtr), (yyvsp[0].nodePtr));
     }
-#line 2115 "part1_EL.tab.c"
+#line 2119 "part1_EL.tab.c"
     break;
 
   case 65: /* do_while_state: DO ':' bl_state WHILE expression ';'  */
-#line 599 "part1_EL.y"
+#line 603 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-1].nodePtr)), "bool") != 0) {
             yyerror("Semantic Error: DO-WHILE condition must be of type 'bool'.");
@@ -2123,26 +2127,26 @@ yyreduce:
         }
         (yyval.nodePtr) = mknode("do_while", (yyvsp[-3].nodePtr), mknode("condition", (yyvsp[-1].nodePtr), NULL));
     }
-#line 2127 "part1_EL.tab.c"
+#line 2131 "part1_EL.tab.c"
     break;
 
   case 66: /* for_state: FOR for_h ':' bl_state  */
-#line 609 "part1_EL.y"
+#line 613 "part1_EL.y"
                                        {
           (yyval.nodePtr) = mknode("for",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2134 "part1_EL.tab.c"
+#line 2138 "part1_EL.tab.c"
     break;
 
   case 67: /* for_state: FOR for_h ':' var bl_state  */
-#line 611 "part1_EL.y"
+#line 615 "part1_EL.y"
                                         {
           (yyval.nodePtr) = mknode("for",(yyvsp[-3].nodePtr),
                       mknode("block",(yyvsp[0].nodePtr),(yyvsp[-1].nodePtr))); }
-#line 2142 "part1_EL.tab.c"
+#line 2146 "part1_EL.tab.c"
     break;
 
   case 68: /* for_h: '(' IDENT ASSIGN expression ';' expression ';' advance_exp ')'  */
-#line 620 "part1_EL.y"
+#line 624 "part1_EL.y"
     {
         if (strcmp(inferExprType((yyvsp[-3].nodePtr)), "bool") != 0) {
             yyerror("Semantic Error: FOR condition must be of type 'bool'.");
@@ -2152,45 +2156,45 @@ yyreduce:
                     mknode("init", mknode((yyvsp[-7].stringVal), NULL, NULL), (yyvsp[-5].nodePtr)),
                     mknode("loop", (yyvsp[-3].nodePtr), (yyvsp[-1].nodePtr)));
     }
-#line 2156 "part1_EL.tab.c"
+#line 2160 "part1_EL.tab.c"
     break;
 
   case 69: /* advance_exp: IDENT ASSIGN expression  */
-#line 632 "part1_EL.y"
+#line 636 "part1_EL.y"
                                              {
           (yyval.nodePtr) = mknode("update",
                       mknode((yyvsp[-2].stringVal),NULL,NULL),(yyvsp[0].nodePtr)); }
-#line 2164 "part1_EL.tab.c"
+#line 2168 "part1_EL.tab.c"
     break;
 
   case 70: /* rt_state: RETURN expression ';'  */
-#line 640 "part1_EL.y"
+#line 644 "part1_EL.y"
                                                  { (yyval.nodePtr) = mknode("return",(yyvsp[-1].nodePtr),NULL); }
-#line 2170 "part1_EL.tab.c"
+#line 2174 "part1_EL.tab.c"
     break;
 
   case 71: /* block_scope_start: %empty  */
-#line 645 "part1_EL.y"
+#line 649 "part1_EL.y"
              { pushScope(); }
-#line 2176 "part1_EL.tab.c"
+#line 2180 "part1_EL.tab.c"
     break;
 
   case 72: /* bl_state: T_BEGIN block_scope_start statements END  */
-#line 651 "part1_EL.y"
+#line 655 "part1_EL.y"
       { popScope();  (yyval.nodePtr) = mknode("block", (yyvsp[-1].nodePtr), NULL); }
-#line 2182 "part1_EL.tab.c"
+#line 2186 "part1_EL.tab.c"
     break;
 
   case 73: /* bl_state: block_scope_start VARIABLE dec_list T_BEGIN statements END  */
-#line 656 "part1_EL.y"
+#line 660 "part1_EL.y"
       { popScope();
         /* $3 = dec_list, $5 = statements                     */
         (yyval.nodePtr) = mknode("block", (yyvsp[-1].nodePtr), mknode("VAR", (yyvsp[-3].nodePtr), NULL)); }
-#line 2190 "part1_EL.tab.c"
+#line 2194 "part1_EL.tab.c"
     break;
 
   case 74: /* func_call: CALL IDENT '(' ')'  */
-#line 664 "part1_EL.y"
+#line 668 "part1_EL.y"
                          {
           Symbol* f = lookupSymbol((yyvsp[-2].stringVal));
           if (!f || f->type != FUNC) {
@@ -2199,11 +2203,11 @@ yyreduce:
           }
           (yyval.nodePtr) = mknode("call", mknode((yyvsp[-2].stringVal),NULL,NULL), NULL);
       }
-#line 2203 "part1_EL.tab.c"
+#line 2207 "part1_EL.tab.c"
     break;
 
   case 75: /* func_call: CALL IDENT '(' exp_list ')'  */
-#line 673 "part1_EL.y"
+#line 677 "part1_EL.y"
                                   {
     Symbol* f = lookupSymbol((yyvsp[-3].stringVal));
     if (!f || f->type != FUNC) {
@@ -2234,21 +2238,13 @@ yyreduce:
         char* actualType = inferExprType(exprNode);
         char* expectedType = f->paramTypes[index];
 
-if (strcmp(actualType, expectedType) != 0) {
-
-        /* char  →  int  מותרת */
-        if (strcmp(actualType,"char")==0 && strcmp(expectedType,"int")==0) {
-            /* nothing to report – promotion allowed */
-        }
-        else {
+        if (strcmp(actualType, expectedType) != 0) {
             char msg[256];
-            sprintf(msg,
-                "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
-                index + 1, f->name, actualType, expectedType);
+            sprintf(msg, "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
+                    index + 1, f->name, actualType, expectedType);
             yyerror(msg);
             YYABORT;
         }
-}
 
         temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
         index++;
@@ -2256,50 +2252,50 @@ if (strcmp(actualType, expectedType) != 0) {
 
     (yyval.nodePtr) = mknode("call", mknode((yyvsp[-3].stringVal),NULL,NULL), (yyvsp[-1].nodePtr));
 }
-#line 2260 "part1_EL.tab.c"
+#line 2256 "part1_EL.tab.c"
     break;
 
   case 76: /* exp_list: expression  */
-#line 729 "part1_EL.y"
+#line 725 "part1_EL.y"
                                                    { (yyval.nodePtr) = (yyvsp[0].nodePtr); }
-#line 2266 "part1_EL.tab.c"
+#line 2262 "part1_EL.tab.c"
     break;
 
   case 77: /* exp_list: expression ',' exp_list  */
-#line 730 "part1_EL.y"
+#line 726 "part1_EL.y"
                                                   { (yyval.nodePtr) = mknode("exp_list",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2272 "part1_EL.tab.c"
+#line 2268 "part1_EL.tab.c"
     break;
 
   case 78: /* expression: INT_LIT  */
-#line 738 "part1_EL.y"
+#line 734 "part1_EL.y"
         { char ibuf[32]; sprintf(ibuf,"%d",(yyvsp[0].intVal));
         (yyval.nodePtr) = mknode("INT", mknode(strdup(ibuf),NULL,NULL), NULL); }
-#line 2279 "part1_EL.tab.c"
+#line 2275 "part1_EL.tab.c"
     break;
 
   case 79: /* expression: REAL_LIT  */
-#line 742 "part1_EL.y"
+#line 738 "part1_EL.y"
         { char rbuf[64]; sprintf(rbuf,"%f",(yyvsp[0].realVal));
         (yyval.nodePtr) = mknode("REAL", mknode(strdup(rbuf),NULL,NULL), NULL); }
-#line 2286 "part1_EL.tab.c"
+#line 2282 "part1_EL.tab.c"
     break;
 
   case 80: /* expression: CHAR_LIT  */
-#line 746 "part1_EL.y"
+#line 742 "part1_EL.y"
         { char cbuf[2] = { (char)(yyvsp[0].charVal), '\0' };
         (yyval.nodePtr) = mknode("CHAR", mknode(strdup(cbuf),NULL,NULL), NULL); }
-#line 2293 "part1_EL.tab.c"
+#line 2289 "part1_EL.tab.c"
     break;
 
   case 81: /* expression: STRING_LIT  */
-#line 750 "part1_EL.y"
+#line 746 "part1_EL.y"
         { (yyval.nodePtr) = mknode("STRING", mknode(strdup((yyvsp[0].stringVal)),NULL,NULL), NULL); }
-#line 2299 "part1_EL.tab.c"
+#line 2295 "part1_EL.tab.c"
     break;
 
   case 82: /* expression: IDENT  */
-#line 752 "part1_EL.y"
+#line 748 "part1_EL.y"
             {
         if (!isVarDeclaredInScope((yyvsp[0].stringVal))) {
             char msg[128];
@@ -2309,41 +2305,41 @@ if (strcmp(actualType, expectedType) != 0) {
         }
         (yyval.nodePtr) = mknode((yyvsp[0].stringVal),NULL,NULL);
     }
-#line 2313 "part1_EL.tab.c"
+#line 2309 "part1_EL.tab.c"
     break;
 
   case 83: /* expression: expression PLUS expression  */
-#line 763 "part1_EL.y"
+#line 759 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("+",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2319 "part1_EL.tab.c"
+#line 2315 "part1_EL.tab.c"
     break;
 
   case 84: /* expression: expression MINUS expression  */
-#line 764 "part1_EL.y"
+#line 760 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("-",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2325 "part1_EL.tab.c"
+#line 2321 "part1_EL.tab.c"
     break;
 
   case 85: /* expression: expression MULTI expression  */
-#line 765 "part1_EL.y"
+#line 761 "part1_EL.y"
                                      { (yyval.nodePtr) = mknode("*",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2331 "part1_EL.tab.c"
+#line 2327 "part1_EL.tab.c"
     break;
 
   case 86: /* expression: expression DIV expression  */
-#line 766 "part1_EL.y"
+#line 762 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("/",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2337 "part1_EL.tab.c"
+#line 2333 "part1_EL.tab.c"
     break;
 
   case 87: /* expression: MINUS expression  */
-#line 769 "part1_EL.y"
+#line 765 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode("unary-",(yyvsp[0].nodePtr),NULL); }
-#line 2343 "part1_EL.tab.c"
+#line 2339 "part1_EL.tab.c"
     break;
 
   case 88: /* expression: ADDRESS expression  */
-#line 771 "part1_EL.y"
+#line 767 "part1_EL.y"
     {
         char* baseType = inferExprType((yyvsp[0].nodePtr));
 
@@ -2363,17 +2359,17 @@ if (strcmp(actualType, expectedType) != 0) {
             YYABORT;
         }
     }
-#line 2367 "part1_EL.tab.c"
+#line 2363 "part1_EL.tab.c"
     break;
 
   case 89: /* expression: NOT expression  */
-#line 792 "part1_EL.y"
+#line 788 "part1_EL.y"
                                   { (yyval.nodePtr) = mknode("not", (yyvsp[0].nodePtr), NULL); }
-#line 2373 "part1_EL.tab.c"
+#line 2369 "part1_EL.tab.c"
     break;
 
   case 90: /* expression: MULTI IDENT  */
-#line 795 "part1_EL.y"
+#line 791 "part1_EL.y"
     {
         Symbol* v = lookupSymbol((yyvsp[0].stringVal));
         if (!v){
@@ -2389,11 +2385,11 @@ if (strcmp(actualType, expectedType) != 0) {
         }
         (yyval.nodePtr) = mknode("deref", mknode((yyvsp[0].stringVal),NULL,NULL), NULL);
     }
-#line 2393 "part1_EL.tab.c"
+#line 2389 "part1_EL.tab.c"
     break;
 
   case 91: /* expression: MULTI expression  */
-#line 813 "part1_EL.y"
+#line 809 "part1_EL.y"
     {
         char* t = inferExprType((yyvsp[0].nodePtr));
 
@@ -2403,59 +2399,59 @@ if (strcmp(actualType, expectedType) != 0) {
         }
         (yyval.nodePtr) = mknode("unary*", (yyvsp[0].nodePtr), NULL);
     }
-#line 2407 "part1_EL.tab.c"
+#line 2403 "part1_EL.tab.c"
     break;
 
   case 92: /* expression: '(' expression ')'  */
-#line 825 "part1_EL.y"
+#line 821 "part1_EL.y"
                                     { (yyval.nodePtr) = (yyvsp[-1].nodePtr); }
-#line 2413 "part1_EL.tab.c"
+#line 2409 "part1_EL.tab.c"
     break;
 
   case 93: /* expression: LENGTH expression LENGTH  */
-#line 827 "part1_EL.y"
+#line 823 "part1_EL.y"
                                   { (yyval.nodePtr) = mknode("|", (yyvsp[-1].nodePtr), NULL); }
-#line 2419 "part1_EL.tab.c"
+#line 2415 "part1_EL.tab.c"
     break;
 
   case 94: /* expression: expression EQL expression  */
-#line 831 "part1_EL.y"
+#line 827 "part1_EL.y"
                                      { (yyval.nodePtr) = mknode("==",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2425 "part1_EL.tab.c"
+#line 2421 "part1_EL.tab.c"
     break;
 
   case 95: /* expression: expression NOTEQL expression  */
-#line 832 "part1_EL.y"
+#line 828 "part1_EL.y"
                                         { (yyval.nodePtr) = mknode("!=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2431 "part1_EL.tab.c"
+#line 2427 "part1_EL.tab.c"
     break;
 
   case 96: /* expression: expression GREATEREQL expression  */
-#line 833 "part1_EL.y"
+#line 829 "part1_EL.y"
                                             { (yyval.nodePtr) = mknode(">=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2437 "part1_EL.tab.c"
+#line 2433 "part1_EL.tab.c"
     break;
 
   case 97: /* expression: expression LESSEQL expression  */
-#line 834 "part1_EL.y"
+#line 830 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode("<=",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2443 "part1_EL.tab.c"
+#line 2439 "part1_EL.tab.c"
     break;
 
   case 98: /* expression: expression GREATER expression  */
-#line 835 "part1_EL.y"
+#line 831 "part1_EL.y"
                                          { (yyval.nodePtr) = mknode(">", (yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2449 "part1_EL.tab.c"
+#line 2445 "part1_EL.tab.c"
     break;
 
   case 99: /* expression: expression LESS expression  */
-#line 836 "part1_EL.y"
+#line 832 "part1_EL.y"
                                       { (yyval.nodePtr) = mknode("<", (yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2455 "part1_EL.tab.c"
+#line 2451 "part1_EL.tab.c"
     break;
 
   case 100: /* expression: IDENT '[' expression ']'  */
-#line 840 "part1_EL.y"
+#line 836 "part1_EL.y"
                                {
     if (!isVarDeclaredInScope((yyvsp[-3].stringVal))) {
         char msg[128];
@@ -2480,47 +2476,47 @@ if (strcmp(actualType, expectedType) != 0) {
 
     (yyval.nodePtr) = mknode("index", mknode((yyvsp[-3].stringVal), NULL, NULL), (yyvsp[-1].nodePtr));
 }
-#line 2484 "part1_EL.tab.c"
+#line 2480 "part1_EL.tab.c"
     break;
 
   case 101: /* expression: expression AND expression  */
-#line 866 "part1_EL.y"
+#line 862 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("and",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2490 "part1_EL.tab.c"
+#line 2486 "part1_EL.tab.c"
     break;
 
   case 102: /* expression: expression OR expression  */
-#line 867 "part1_EL.y"
+#line 863 "part1_EL.y"
                                     { (yyval.nodePtr) = mknode("or",(yyvsp[-2].nodePtr),(yyvsp[0].nodePtr)); }
-#line 2496 "part1_EL.tab.c"
+#line 2492 "part1_EL.tab.c"
     break;
 
   case 103: /* expression: TRUE  */
-#line 869 "part1_EL.y"
+#line 865 "part1_EL.y"
                          { (yyval.nodePtr) = mknode("BOOL", mknode("TRUE", NULL, NULL), NULL); }
-#line 2502 "part1_EL.tab.c"
+#line 2498 "part1_EL.tab.c"
     break;
 
   case 104: /* expression: FALSE  */
-#line 870 "part1_EL.y"
+#line 866 "part1_EL.y"
                          { (yyval.nodePtr) = mknode("BOOL", mknode("FALSE", NULL, NULL), NULL); }
-#line 2508 "part1_EL.tab.c"
+#line 2504 "part1_EL.tab.c"
     break;
 
   case 105: /* expression: LENGTH IDENT LENGTH  */
-#line 872 "part1_EL.y"
+#line 868 "part1_EL.y"
       { (yyval.nodePtr) = mknode("|", mknode((yyvsp[-1].stringVal),NULL,NULL), NULL); }
-#line 2514 "part1_EL.tab.c"
+#line 2510 "part1_EL.tab.c"
     break;
 
   case 106: /* expression: func_call  */
-#line 876 "part1_EL.y"
+#line 872 "part1_EL.y"
                                 { (yyval.nodePtr) = (yyvsp[0].nodePtr); }
-#line 2520 "part1_EL.tab.c"
+#line 2516 "part1_EL.tab.c"
     break;
 
 
-#line 2524 "part1_EL.tab.c"
+#line 2520 "part1_EL.tab.c"
 
       default: break;
     }
@@ -2713,7 +2709,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 878 "part1_EL.y"
+#line 874 "part1_EL.y"
   /* ===================  C‑code section ================================*/
 
 #include "lex.yy.c"
@@ -2958,8 +2954,8 @@ char* inferExprType(node* expr)
     return norm;
 }
 
-    if (isalpha((unsigned char)expr->token[0])) {
-    return "int";          /* default fallback */
+if (isalpha((unsigned char)expr->token[0])) {
+    return "unknown";      /* נשאר לא ידוע עד שהמזהה מוכר */
 }
 
     char* lt = expr->left  ? inferExprType(expr->left ) : NULL;

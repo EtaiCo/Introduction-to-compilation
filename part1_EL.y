@@ -521,7 +521,7 @@ assign_state
                     mknode($1, NULL, NULL),
                     mknode("NULL", NULL, NULL));
     }
-    ;
+
 
     | MULTI expression ASSIGN expression ';'
     {
@@ -554,7 +554,8 @@ if_state :
     IF expression ':' stmt_or_block %prec ELSELESS
     {
         if (strcmp(inferExprType($2), "bool") != 0) {
-
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
         }
         $$ = mknode("if", $2, $4);
     }
@@ -562,7 +563,8 @@ if_state :
   | IF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
     {
         if (strcmp(inferExprType($2), "bool") != 0) {
-
+            yyerror("Semantic Error: IF condition must be of type 'bool'.");
+            YYABORT;
         }
         $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
     }
@@ -570,7 +572,8 @@ if_state :
   | IF expression ':' stmt_or_block  ELIF expression ':' stmt_or_block 
     {
         if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
         }
         $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
     }
@@ -578,7 +581,8 @@ if_state :
   | IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
     {
         if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-
+            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+            YYABORT;
         }
         $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL)))));
     };
@@ -700,21 +704,13 @@ func_call :
         char* actualType = inferExprType(exprNode);
         char* expectedType = f->paramTypes[index];
 
-if (strcmp(actualType, expectedType) != 0) {
-
-        /* char  →  int  מותרת */
-        if (strcmp(actualType,"char")==0 && strcmp(expectedType,"int")==0) {
-            /* nothing to report – promotion allowed */
-        }
-        else {
+        if (strcmp(actualType, expectedType) != 0) {
             char msg[256];
-            sprintf(msg,
-                "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
-                index + 1, f->name, actualType, expectedType);
+            sprintf(msg, "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
+                    index + 1, f->name, actualType, expectedType);
             yyerror(msg);
             YYABORT;
         }
-}
 
         temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
         index++;
@@ -1119,8 +1115,8 @@ char* inferExprType(node* expr)
     return norm;
 }
 
-    if (isalpha((unsigned char)expr->token[0])) {
-    return "int";          /* default fallback */
+if (isalpha((unsigned char)expr->token[0])) {
+    return "unknown";      /* נשאר לא ידוע עד שהמזהה מוכר */
 }
 
     char* lt = expr->left  ? inferExprType(expr->left ) : NULL;
