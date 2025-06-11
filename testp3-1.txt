@@ -1,0 +1,26 @@
+def calc(par1 int:m): returns real
+var
+    type real:r;
+begin
+  if m > 0:
+  begin
+    r = 1.5;
+  end
+  else:
+  begin
+    r = 3.5;
+  end
+  return r;
+end
+
+def _main_():
+var
+    type int:i:0;
+    type real:total;
+begin
+  while i < 3:
+  begin
+    total = call calc(i);
+    i = i + 1;
+  end
+end

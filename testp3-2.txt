@@ -1,0 +1,22 @@
+def checkNum(par1 int:x): returns bool
+var
+    type bool:result;
+    type bool:tf;
+begin
+  if x == 0:
+    tf = FALSE;
+  elif x == 1:
+    tf = TRUE;
+  else:
+    tf = (x > 1);
+  result = tf;
+  return result;
+end
+
+def _main_():
+var
+    type int:n:2;
+    type bool:b;
+begin
+  b = call checkNum(n);
+end

@@ -3261,12 +3261,11 @@ static int tempBytesInFunc = 0;          /* reset at each genFunction */
 /* byte size of the value produced by expression e */
 static int resultSize(node *e)
 {
-    const char *t = inferExprType(e);    /* "int", "realptr", …        */
-    if (!t) return 4;
-    if (!strcasecmp(t,"real") || !strcasecmp(t,"realptr")
-                              || !strcasecmp(t,"string"))
-        return 8;                       /* 8-byte values              */
-    return 4;                           /* everything else            */
+    const char *tok = e ? e->token : "";
+    if (!strcasecmp(tok,"real") || !strcasecmp(tok,"realptr") || !strcasecmp(tok,"string"))
+        return 8;
+    if (!strcmp(tok,"|") || !strcmp(tok,"length")) return 4;
+    return 4;
 }
 
 /* allocate a temp for expression e and remember its size */
@@ -3311,11 +3310,17 @@ static char *genExpr(node *e)
     if (!e) return strdup("0");
 
     /* 1. terminals ---------------------------------------------------- */
-    if (isLiteral(e->token)) {
-        char *t =makeTempFor(e);
+  if (isLiteral(e->token)) {
+    char *t = makeTempFor(e);
+
+    /* CHAR צריך גרשיים ב-3AC  */
+    if (!strcmp(e->token,"CHAR"))
+        emit("%s = '%s'", t, literalValue(e));
+    else
         emit("%s = %s", t, literalValue(e));
-        return t;
-    }
+
+    return t;
+}
     if (!strcmp(e->token,"TRUE") || !strcmp(e->token,"FALSE")) {
         char *t =makeTempFor(e);
         emit("%s = %s", t, !strcmp(e->token,"TRUE") ? "1" : "0");
@@ -3328,9 +3333,6 @@ static char *genExpr(node *e)
     }
     if (lookupSymbol(e->token)) {          /* variable / param */
         return strdup(e->token);           /* already stored */
-    }
-    if (isalpha((unsigned char)e->token[0])) {
-    return strdup(e->token);           /* treat as plain variable */
     }
 
     /* 2. unary -------------------------------------------------------- */
@@ -3373,6 +3375,15 @@ static char *genExpr(node *e)
         return t;
     }
 
+    /* === 5. LENGTH  |expr|  ============================================== */
+if (!strcmp(e->token,"|")) {
+    /* child-expr נשמר ב-left  (כך נבנה ה-AST) */
+    char *arg = genExpr(e->left);      /* יכול להיות IDENT או ביטוי */
+    char *t   = makeTempFor(e);        /* tX = length arg            */
+    emit("%s = length %s", t, arg);
+    return t;
+}
+
     /* 5. function call ----------------------------------------------- */
     if (!strcmp(e->token,"call")) {
         const char *fname = e->left->token;
@@ -3394,7 +3405,9 @@ static char *genExpr(node *e)
         if (bytes) emit("PopParams %d", bytes);
         return ret;
     }
-
+        if (isalpha((unsigned char)e->token[0])) {
+    return strdup(e->token);           /* treat as plain variable */
+    }
     fprintf(stderr,"[CodeGen] unhandled expr token %s\n", e->token);
     return strdup("0");
 }
@@ -3570,6 +3583,7 @@ static void genFunction(node *f)
     patchBeginSize(beginLine, tempsBytes + localsBytes);
 
     emit("EndFunc");
+    tempBytesInFunc = 0;  
 }
 
 static void genGlobal(node *n)
