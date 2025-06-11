@@ -439,10 +439,11 @@ state :
         ;
 /* ------------------------- Assignment variants --------------------------*/
 assign_state
-    /* 14‑A  —  x = expr ;  (types must match) */
+  /* 14-A —  x = expr ;  (types must match או “unknown” = טיפוס שמתגלה מאוחר) */
   : IDENT ASSIGN expression ';'
     {
-        Symbol* lvar = lookupSymbol($1);          /* LHS variable */
+        /* LHS – חובה שיהיה מוכר  */
+        Symbol *lvar = lookupSymbol($1);
         if (!lvar) {
             char msg[128];
             sprintf(msg,
@@ -451,24 +452,34 @@ assign_state
             YYABORT;
         }
 
-        char* lhsType = strdup(lvar->returnType); // normalize lhs type too
-        for (char* p = lhsType; *p; ++p) *p = tolower(*p);
-        char* rhsTypeA = inferExprType($3);
+        /* טיפוסי ימין-ושמאל */
+        char *lhsType = strdup(lvar->returnType);
+        for (char *p = lhsType; *p; ++p) *p = tolower(*p);
 
-        if (strcmp(lhsType,"bool")==0 && strcmp(rhsTypeA,"int")==0) {
-        rhsTypeA = lhsType;          /* מותר int→bool  */
-    }
+        char *rhsType = inferExprType($3);
 
-        if (strcmp(lhsType, rhsTypeA) != 0) {
+        /* ❶ “unknown” → נניח שזה בעצם הטיפוס של הצד השמאלי
+               (נפטר מהשגיאה כשהטיפוס יתברר סופית)                   */
+        if (!strcmp(rhsType, "unknown"))
+            rhsType = lhsType;
+
+        /* ❷ מותר int→bool */
+        if (!strcmp(lhsType, "bool") && !strcmp(rhsType, "int"))
+            rhsType = lhsType;
+
+        /* ❸ אם עדיין לא זהים – שגיאה */
+        if (strcmp(lhsType, rhsType) != 0) {
             char msg[256];
             sprintf(msg,
                     "Semantic Error: Cannot assign type '%s' to variable '%s' of type '%s'.",
-                    rhsTypeA, $1, lhsType);
+                    rhsType, $1, lhsType);
             yyerror(msg);
             YYABORT;
         }
 
-        $$ = mknode("assign", mknode($1, NULL, NULL), $3);
+        $$ = mknode("assign",
+                    mknode($1, NULL, NULL),
+                    $3);
     }
 
     /* 14‑B  —  s[i] = char‑literal or expression‑of‑type‑char */
@@ -550,42 +561,64 @@ stmt_or_block
     | bl_state     /* BEGIN … END or var … BEGIN … END */
 ;
 
-if_state :
-    IF expression ':' stmt_or_block %prec ELSELESS
-    {
-        if (strcmp(inferExprType($2), "bool") != 0) {
-            yyerror("Semantic Error: IF condition must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if", $2, $4);
-    }
+if_state
+    : IF expression ':' stmt_or_block %prec ELSELESS
+      {
+          char *t = inferExprType($2);
+          if (strcmp(t, "bool") != 0 && strcmp(t, "unknown") != 0) {
+              yyerror("Semantic Error: IF condition must be of type 'bool'.");
+              YYABORT;
+          }
+          $$ = mknode("if", $2, $4);
+      }
 
-  | IF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
-    {
-        if (strcmp(inferExprType($2), "bool") != 0) {
-            yyerror("Semantic Error: IF condition must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_else", $2, mknode("then", $4, mknode("else", $7, NULL)));
-    }
+    | IF expression ':' stmt_or_block  ELSE ':' stmt_or_block
+      {
+          char *t = inferExprType($2);
+          if (strcmp(t, "bool") != 0 && strcmp(t, "unknown") != 0) {
+              yyerror("Semantic Error: IF condition must be of type 'bool'.");
+              YYABORT;
+          }
+          $$ = mknode("if_else",
+                       $2,
+                       mknode("then", $4,
+                              mknode("else", $7, NULL)));
+      }
 
-  | IF expression ':' stmt_or_block  ELIF expression ':' stmt_or_block 
-    {
-        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_elif", $2, mknode("then", $4, mknode("elif", $6, $8)));
-    }
+    | IF expression ':' stmt_or_block  ELIF expression ':' stmt_or_block
+      {
+          char *t1 = inferExprType($2);
+          char *t2 = inferExprType($6);
+          if ( (strcmp(t1, "bool") != 0 && strcmp(t1, "unknown") != 0) ||
+               (strcmp(t2, "bool") != 0 && strcmp(t2, "unknown") != 0) ) {
+              yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+              YYABORT;
+          }
+          $$ = mknode("if_elif",
+                       $2,
+                       mknode("then", $4,
+                              mknode("elif", $6, $8)));
+      }
 
-  | IF expression ':' stmt_or_block ELIF expression ':' stmt_or_block  ELSE ':' stmt_or_block 
-    {
-        if (strcmp(inferExprType($2), "bool") != 0 || strcmp(inferExprType($6), "bool") != 0) {
-            yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
-            YYABORT;
-        }
-        $$ = mknode("if_elif-else", $2, mknode("then", $4, mknode("elif", $6, mknode("elif-then", $8, mknode("else", $11, NULL)))));
-    };
+    | IF expression ':' stmt_or_block
+      ELIF expression ':' stmt_or_block
+      ELSE ':' stmt_or_block
+      {
+          char *t1 = inferExprType($2);
+          char *t2 = inferExprType($6);
+          if ( (strcmp(t1, "bool") != 0 && strcmp(t1, "unknown") != 0) ||
+               (strcmp(t2, "bool") != 0 && strcmp(t2, "unknown") != 0) ) {
+              yyerror("Semantic Error: IF and ELIF conditions must be of type 'bool'.");
+              YYABORT;
+          }
+          $$ = mknode("if_elif-else",
+                       $2,
+                       mknode("then", $4,
+                              mknode("elif", $6,
+                                     mknode("elif-then", $8,
+                                            mknode("else", $11, NULL)))));
+      };
+
 
 /* -----------------------------  WHILE loop ------------------------------*/
 while_state :
@@ -697,24 +730,35 @@ func_call :
     }
 
     // Rule 8: Type check each parameter
-    temp = $4;
-    int index = 0;
-    while (temp && index < f->paramCount) {
-        node* exprNode = (strcmp(temp->token, "exp_list") == 0) ? temp->left : temp;
-        char* actualType = inferExprType(exprNode);
-        char* expectedType = f->paramTypes[index];
+temp = $4;
+int index = 0;
+while (temp && index < f->paramCount) {
+    node *exprNode = (strcmp(temp->token, "exp_list") == 0)
+                     ? temp->left          /* צומת הביטוי */
+                     : temp;
 
-        if (strcmp(actualType, expectedType) != 0) {
-            char msg[256];
-            sprintf(msg, "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
-                    index + 1, f->name, actualType, expectedType);
-            yyerror(msg);
-            YYABORT;
-        }
+    char *actualType   = inferExprType(exprNode);
+    char *expectedType = f->paramTypes[index];
 
-        temp = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
-        index++;
+    /* קידומי-טיפוס מותרים */
+    int ok = 0;
+    if (!strcmp(actualType, expectedType))                 ok = 1; /* זהה */
+    else if (!strcmp(actualType, "char") &&
+             !strcmp(expectedType, "int"))                 ok = 1; /* char→int */
+    else if (!strcmp(actualType, "unknown"))               ok = 1; /* עדיין לא ידוע */
+
+    if (!ok) {
+        char msg[256];
+        sprintf(msg,
+                "Semantic Error: Argument %d in call to '%s' has type '%s' but expected '%s'.",
+                index + 1, f->name, actualType, expectedType);
+        yyerror(msg);
+        YYABORT;
     }
+
+    temp  = (strcmp(temp->token, "exp_list") == 0) ? temp->right : NULL;
+    index++;
+}
 
     $$ = mknode("call", mknode($2,NULL,NULL), $4);
 }
@@ -1122,64 +1166,65 @@ if (isalpha((unsigned char)expr->token[0])) {
     char* lt = expr->left  ? inferExprType(expr->left ) : NULL;
     char* rt = expr->right ? inferExprType(expr->right) : NULL;
 
-    /* + - * / */
-    if (strcmp(expr->token,"+")==0||
-        strcmp(expr->token,"-")==0||
-        strcmp(expr->token,"*")==0||
-        strcmp(expr->token,"/")==0){
-        if (!isNumeric(lt)||!isNumeric(rt)){
-            yyerror("Semantic Error: arithmetic operators require int/real.");
-            return "unknown";
-        }
-        return (isInt(lt)&&isInt(rt)) ? "int" : "real";
+    /* +  -  *  /  ----------------------------------------------------------- */
+if (!strcmp(expr->token,"+") ||
+    !strcmp(expr->token,"-") ||
+    !strcmp(expr->token,"*") ||
+    !strcmp(expr->token,"/"))
+{
+    int lOK = isNumeric(lt) || !strcmp(lt,"unknown");
+    int rOK = isNumeric(rt) || !strcmp(rt,"unknown");
+
+    if (!lOK || !rOK) {
+        yyerror("Semantic Error: arithmetic operators require int/real.");
+        return "unknown";
     }
 
-    /* and or */
-   if (strcmp(expr->token,"and")==0 || strcmp(expr->token,"or")==0) {
+    /* אם שניהם int – התוצאה int; אחרת (או אם לא ידוע) → real/unknown */
+    if (!strcmp(lt,"int") && !strcmp(rt,"int")) return "int";
+    if (!strcmp(lt,"unknown") || !strcmp(rt,"unknown")) return "unknown";
+    return "real";
+}
 
-    int lOk = isBool(lt) || !strcmp(lt,"unknown");
-    int rOk = isBool(rt) || !strcmp(rt,"unknown");
+/* >  <  >=  <=  --------------------------------------------------------- */
+if (!strcmp(expr->token,">")  || !strcmp(expr->token,"<")  ||
+    !strcmp(expr->token,">=") || !strcmp(expr->token,"<="))
+{
+    int lOK = isNumeric(lt) || !strcmp(lt,"unknown");
+    int rOK = isNumeric(rt) || !strcmp(rt,"unknown");
 
-    if (!lOk || !rOk) {
-        yyerror("Semantic Error: logical operators require bool.");
+    if (!lOK || !rOK) {
+        yyerror("Semantic Error: comparison requires int/real.");
         return "unknown";
     }
     return "bool";
 }
 
-    /* > < >= <= */
-    if (strcmp(expr->token,">")==0||strcmp(expr->token,"<")==0||
-        strcmp(expr->token,">=")==0||strcmp(expr->token,"<=")==0){
-        if (!isNumeric(lt)||!isNumeric(rt)){
-            yyerror("Semantic Error: comparison requires int/real.");
-            return "unknown";
-        }
-        return "bool";
-    }
+/* ==  !=  --------------------------------------------------------------- */
+if (!strcmp(expr->token,"==") || !strcmp(expr->token,"!="))
+{
+    int legal =
+        (isInt(lt)&&isInt(rt))     || (isReal(lt)&&isReal(rt)) ||
+        (isBool(lt)&&isBool(rt))   || (isChar(lt)&&isChar(rt)) ||
+        samePtrType(lt,rt)         ||
+        !strcmp(lt,"unknown")      || !strcmp(rt,"unknown");
 
-    /* == != */
-    if (strcmp(expr->token,"==")==0||strcmp(expr->token,"!=")==0){
-        int ok =
-            (isInt(lt)&&isInt(rt))   ||
-            (isReal(lt)&&isReal(rt)) ||
-            (isBool(lt)&&isBool(rt)) ||
-            (isChar(lt)&&isChar(rt)) ||
-            samePtrType(lt,rt);
-        if (!ok){
-            yyerror("Semantic Error: illegal types for equality operator.");
-            return "unknown";
-        }
-        return "bool";
+    if (!legal) {
+        yyerror("Semantic Error: illegal types for equality operator.");
+        return "unknown";
     }
+    return "bool";
+}
 
-    /* |expr| */
-    if (strcmp(expr->token,"|")==0){
-        if (!isStr(lt)){
-            yyerror("Semantic Error: | | expects string.");
-            return "unknown";
-        }
-        return "int";
+/* | expr |  ------------------------------------------------------------- */
+if (!strcmp(expr->token,"|"))
+{
+    if (!isStr(lt) && strcmp(lt,"unknown")!=0) {
+        yyerror("Semantic Error: | | expects string.");
+        return "unknown";
     }
+    return "int";
+}
 
     /* string[i] */
     if (strcmp(expr->token, "index") == 0) 
